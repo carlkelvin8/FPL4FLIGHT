@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.next/
+coverage/
+*.lock
+supabase/.branches
+supabase/.temp

@@ -1,0 +1,77 @@
+# =============================================================================
+# Supabase Local Development Configuration
+# PilotForms™ SaaS Platform
+#
+# This file defines the Supabase stack configuration for local development.
+# Run `supabase start` to spin up the local environment with these settings.
+# =============================================================================
+
+# Project name shown in the Supabase CLI
+project_id = "pilotforms-local"
+
+[api]
+# Port the REST API will listen on
+port = 54321
+# Request body size limit (bytes)
+max_rows = 1000
+
+[db]
+# PostgreSQL database port
+port = 54322
+# Database name
+major_version = 15
+
+[studio]
+# Supabase Studio (web UI) port
+port = 54323
+
+[auth]
+# Authentication service port
+port = 54324
+# Supabase Auth site URL (used for email redirects)
+site_url = "http://localhost:3000"
+# Additional redirect URLs (mobile deep links, admin dashboard)
+additional_redirect_urls = [
+  "pilotforms://auth",
+  "exp://localhost:8081"
+]
+# JWT expiry (30 days per REQ-1.4)
+jwt_expiry = 2592000
+# Enable refresh token rotation — invalidates old refresh token on every use (REQ-1.5)
+enable_refresh_token_rotation = true
+# Enable email confirmations in local dev
+enable_signup = true
+# Disable email verification for faster local testing
+enable_confirmations = false
+
+[auth.email]
+# Allow users to sign in with email + password
+enable_signup = true
+# Disable double confirmation for local dev
+double_confirm_changes = false
+# Allow secure password changes without re-confirmation
+enable_confirmations = false
+
+[auth.external.google]
+enabled = false
+
+[auth.external.apple]
+enabled = false
+
+[storage]
+# Storage service port
+port = 54325
+# Local file size upload limit (10 MB)
+file_size_limit = "10MiB"
+
+[functions]
+# Edge functions Deno runtime port
+port = 54326
+
+[realtime]
+# Realtime WebSocket port
+port = 54327
+
+[edge_runtime]
+# Deno edge runtime policy (permissive for local dev)
+policy = "per_worker"

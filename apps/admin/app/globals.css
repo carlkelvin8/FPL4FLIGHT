@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-brand: theme("colors.brand.600");
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-runway-50 text-runway-900;
+  }
+}

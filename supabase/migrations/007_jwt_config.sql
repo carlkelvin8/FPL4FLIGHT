@@ -1,0 +1,33 @@
+-- =============================================================================
+-- Migration 007: JWT Configuration Notes
+-- PilotForms™ SaaS Platform
+-- REQ-1.4 (JWT expiry 30 days), REQ-1.5 (refresh token rotation)
+--
+-- JWT and token configuration is managed via supabase/config.toml (local dev)
+-- and the Supabase project dashboard (production). It cannot be set via SQL.
+-- This migration file serves as living documentation of the applied settings.
+--
+-- APPLIED CONFIGURATION (supabase/config.toml [auth] section):
+-- ─────────────────────────────────────────────────────────────
+-- jwt_expiry = 2592000
+--   → 2 592 000 seconds = 30 days
+--   → Access tokens remain valid for 30 days (REQ-1.4)
+--
+-- enable_refresh_token_rotation = true
+--   → Each token refresh issues a new refresh token and immediately invalidates
+--     the previous one. This prevents refresh token reuse attacks (REQ-1.5).
+--
+-- MFA (email OTP):
+--   → Enabled via the Supabase dashboard under Authentication → Policies.
+--   → Email OTP uses the configured SMTP/SendGrid integration.
+--
+-- PRODUCTION CHECKLIST:
+-- ─────────────────────
+-- [ ] Set jwt_expiry = 2592000 in the Supabase cloud project dashboard
+-- [ ] Confirm "Refresh Token Rotation" is enabled in Auth settings
+-- [ ] Enable MFA (email OTP) under Authentication → Multi-factor Auth
+-- [ ] Rotate the JWT secret before first production deploy (Task 36)
+-- =============================================================================
+
+-- No executable SQL — all settings are in supabase/config.toml and the
+-- Supabase project dashboard. This file is intentionally documentation-only.
