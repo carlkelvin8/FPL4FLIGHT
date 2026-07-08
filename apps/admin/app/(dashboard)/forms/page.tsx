@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+
+import { supabaseConfigured } from "@/lib/supabase/server";
+import { CreateTemplateDialog } from "@/features/form-builder/components/create-dialog";
 import { FormTemplateRepository } from "@/features/form-builder/repository";
 import { TemplateList } from "@/features/form-builder/components/template-list";
-import { CreateTemplateDialog } from "@/features/form-builder/components/create-dialog";
-import { supabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Form Templates",

@@ -2,8 +2,8 @@ import type { ExpoConfig, ConfigContext } from "expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "PilotForms",
-  slug: "pilotforms",
+  name: "FPL4FLIGHT",
+  slug: "fpl4flight",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
@@ -48,8 +48,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     revenueCatKeyAndroid: process.env["REVENUECAT_API_KEY_ANDROID"],
     sentryDsn: process.env["SENTRY_DSN"],
     eas: {
-      projectId: "<your-eas-project-id>",
+      projectId: "f22e6c2e-fe6e-4b23-af2e-0b8768dda46d",
     },
   },
-  scheme: "pilotforms",
+  scheme: "fpl4flight",
 });

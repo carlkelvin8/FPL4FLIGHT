@@ -1,6 +1,14 @@
 import { Stack } from "expo-router";
 
-/** Auth stack — login, register, MFA screens. */
+/** Auth stack — login, register screens. */
 export default function AuthLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+        gestureEnabled: true,
+      }}
+    />
+  );
 }

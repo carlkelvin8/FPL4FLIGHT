@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { createSupabaseServerClient, supabaseConfigured } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { createSupabaseServerClient, supabaseConfigured } from "@/lib/supabase/server";
+
 import { SignOutButton } from "./SignOutButton";
 const navItems = [
   { href: "/", label: "Overview" },

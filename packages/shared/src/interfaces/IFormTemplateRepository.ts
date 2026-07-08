@@ -3,8 +3,8 @@
  * Concrete implementations (Supabase, SQLite cache) live in the data layer.
  */
 
-import type { Result } from "../types/result";
 import type { FormTemplate } from "../entities/form";
+import type { Result } from "../types/result";
 
 export interface IFormTemplateRepository {
   findAll(): Promise<Result<FormTemplate[]>>;

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+
 import { notificationRepository, type NotificationItem } from "../repositories/NotificationRepository";
 
 const NOTIF_KEY = ["notifications"];
@@ -14,6 +15,7 @@ export function useNotifications() {
       if (!result.success) throw new Error(result.error.message);
       return result.data;
     },
+    staleTime: 1000 * 60 * 2,
   });
 
   const markRead = useMutation({

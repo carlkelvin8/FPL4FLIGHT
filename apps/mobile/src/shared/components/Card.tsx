@@ -1,6 +1,7 @@
-import { View, type ViewStyle, type StyleProp } from "react-native";
-import { colors, borderRadius, shadows, spacing } from "../theme";
 import type { ReactNode } from "react";
+import { View, type ViewStyle, type StyleProp } from "react-native";
+
+import { colors, borderRadius, shadows, spacing } from "../theme";
 
 interface CardProps {
   children: ReactNode;
@@ -39,7 +40,7 @@ export function Card({ children, style, variant = "default", padded = true }: Ca
         style,
       ]}
     >
-      {children}
+      {children as any}
     </View>
   );
 }

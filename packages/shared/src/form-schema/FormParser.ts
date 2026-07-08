@@ -1,5 +1,6 @@
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
+
 import type {
   FormSchema,
   FormSection,
@@ -14,17 +15,26 @@ import type {
   PhotoField,
   ConditionalRule,
 } from "../entities/form";
-import schemaJson from "./schema.json";
+
 import { createParseError, type ParseError } from "./errors";
+import schemaJson from "./schema.json";
+import { err, ok, type Result } from "../types/result";
 
-const ajv = new Ajv({
-  allErrors: true,
-  strict: false,
-  validateSchema: false,
-});
-addFormats(ajv);
+let ajvInstance: Ajv | null = null;
+let validateFn: ReturnType<Ajv["compile"]> | null = null;
 
-const validate = ajv.compile(schemaJson);
+function getValidator(): { validate: ReturnType<Ajv["compile"]>; ajv: Ajv } {
+  if (!ajvInstance) {
+    ajvInstance = new Ajv({
+      allErrors: true,
+      strict: true,
+      validateSchema: true,
+    });
+    addFormats(ajvInstance);
+    validateFn = ajvInstance.compile(schemaJson);
+  }
+  return { validate: validateFn!, ajv: ajvInstance };
+}
 
 interface RawField {
   id: string;
@@ -60,58 +70,72 @@ interface RawSchema {
   };
 }
 
-function isParseError(result: unknown): result is ParseError {
-  return (
-    typeof result === "object" &&
-    result !== null &&
-    "code" in result &&
-    "message" in result
-  );
+const VALID_OPERATORS: ConditionalRule["operator"][] = [
+  "equals", "not_equals", "contains", "greater_than",
+];
+
+function isValidOperator(v: string): v is ConditionalRule["operator"] {
+  return VALID_OPERATORS.includes(v as ConditionalRule["operator"]);
 }
 
-export function parseTemplate(json: string): FormSchema | ParseError {
+function parseConditional(raw: RawField["conditional"]): ConditionalRule | undefined {
+  if (!raw) return undefined;
+  if (!isValidOperator(raw.operator)) return undefined;
+  return {
+    fieldId: raw.fieldId,
+    operator: raw.operator,
+    value: raw.value,
+  };
+}
+
+export function parseTemplate(json: string): Result<FormSchema> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
   } catch {
-    return createParseError(
-      "TEMPLATE_INVALID_SCHEMA",
-      "Invalid JSON syntax.",
-    );
+    return err("TEMPLATE_INVALID_SCHEMA", "Invalid JSON syntax.");
   }
 
   return parseSchema(parsed);
 }
 
-export function parseSchema(input: unknown): FormSchema | ParseError {
+export function parseSchema(input: unknown): Result<FormSchema> {
   if (!input || typeof input !== "object") {
-    return createParseError(
-      "TEMPLATE_INVALID_SCHEMA",
-      "Schema must be a JSON object.",
-    );
+    return err("TEMPLATE_INVALID_SCHEMA", "Schema must be a JSON object.");
   }
 
+  const { validate } = getValidator();
   const valid = validate(input);
   if (!valid) {
     const first = validate.errors?.[0];
-    return createParseError(
+    return err(
       "TEMPLATE_INVALID_SCHEMA",
       first?.message ?? "Schema validation failed.",
       first?.instancePath || undefined,
     );
   }
 
-  const raw = input as unknown as RawSchema;
+  const raw = input as RawSchema;
 
+  const sectionIds = new Set<string>();
   const fieldIds = new Set<string>();
   const sections: FormSection[] = [];
 
   for (const sec of raw.sections) {
+    if (sectionIds.has(sec.id)) {
+      return err(
+        "TEMPLATE_DUPLICATE_SECTION_ID",
+        `Duplicate section id "${sec.id}".`,
+        `/sections/${sec.id}`,
+      );
+    }
+    sectionIds.add(sec.id);
+
     const fields: FormField[] = [];
 
     for (const rawField of sec.fields) {
       if (fieldIds.has(rawField.id)) {
-        return createParseError(
+        return err(
           "TEMPLATE_DUPLICATE_FIELD_ID",
           `Duplicate field id "${rawField.id}" in section "${sec.id}".`,
           `/sections/${sec.id}/fields/${rawField.id}`,
@@ -119,24 +143,39 @@ export function parseSchema(input: unknown): FormSchema | ParseError {
       }
       fieldIds.add(rawField.id);
 
-      const field = parseField(rawField);
-      if (isParseError(field)) {
-        return field;
+      const fieldResult = parseField(rawField);
+      if (!fieldResult.success) {
+        return fieldResult;
       }
-      fields.push(field);
+      fields.push(fieldResult.data);
     }
 
     sections.push({ id: sec.id, title: sec.title, fields });
   }
 
-  return {
+  // Cross-field reference validation
+  for (const sec of sections) {
+    for (const field of sec.fields) {
+      if (field.conditional) {
+        if (!fieldIds.has(field.conditional.fieldId)) {
+          return err(
+            "TEMPLATE_INVALID_CROSS_FIELD_REFERENCE",
+            `Conditional rule in field "${field.id}" references non-existent field "${field.conditional.fieldId}".`,
+            `/sections/${sec.id}/fields/${field.id}/conditional/fieldId`,
+          );
+        }
+      }
+    }
+  }
+
+  return ok({
     sections,
     metadata: {
       formType: raw.metadata.formType,
       regulatoryBasis: raw.metadata.regulatoryBasis ?? null,
       estimatedMinutes: raw.metadata.estimatedMinutes ?? 0,
     },
-  };
+  });
 }
 
 const VALID_FIELD_TYPES = [
@@ -150,9 +189,9 @@ const VALID_FIELD_TYPES = [
   "photo",
 ] as const;
 
-function parseField(raw: RawField): FormField | ParseError {
+function parseField(raw: RawField): Result<FormField> {
   if (!VALID_FIELD_TYPES.includes(raw.type as (typeof VALID_FIELD_TYPES)[number])) {
-    return createParseError(
+    return err(
       "TEMPLATE_INVALID_FIELD_TYPE",
       `Unknown field type "${raw.type}". Supported types: ${VALID_FIELD_TYPES.join(", ")}`,
     );
@@ -162,53 +201,47 @@ function parseField(raw: RawField): FormField | ParseError {
     id: raw.id,
     label: raw.label,
     required: raw.required ?? false,
-    conditional: raw.conditional
-      ? ({
-          fieldId: raw.conditional.fieldId,
-          operator: raw.conditional.operator as ConditionalRule["operator"],
-          value: raw.conditional.value,
-        } as ConditionalRule)
-      : undefined,
+    conditional: parseConditional(raw.conditional),
   };
 
   switch (raw.type) {
     case "text":
-      return {
+      return ok({
         ...base,
         type: "text" as const,
         maxLength: raw.maxLength,
         placeholder: raw.placeholder,
-      } as TextField;
+      } as TextField);
     case "numeric":
-      return {
+      return ok({
         ...base,
         type: "numeric" as const,
         min: raw.min,
         max: raw.max,
         unit: raw.unit,
-      } as NumericField;
+      } as NumericField);
     case "date":
-      return { ...base, type: "date" as const } as DateField;
+      return ok({ ...base, type: "date" as const } as DateField);
     case "time":
-      return { ...base, type: "time" as const } as TimeField;
+      return ok({ ...base, type: "time" as const } as TimeField);
     case "dropdown":
-      return {
+      return ok({
         ...base,
         type: "dropdown" as const,
         options: raw.options ?? [],
-      } as DropdownField;
+      } as DropdownField);
     case "checkbox":
-      return { ...base, type: "checkbox" as const } as CheckboxField;
+      return ok({ ...base, type: "checkbox" as const } as CheckboxField);
     case "signature":
-      return { ...base, type: "signature" as const } as SignatureField;
+      return ok({ ...base, type: "signature" as const } as SignatureField);
     case "photo":
-      return {
+      return ok({
         ...base,
         type: "photo" as const,
         maxPhotos: raw.maxPhotos ?? 10,
-      } as PhotoField;
+      } as PhotoField);
     default:
-      return createParseError(
+      return err(
         "TEMPLATE_INVALID_FIELD_TYPE",
         `Unknown field type "${raw.type}".`,
       );

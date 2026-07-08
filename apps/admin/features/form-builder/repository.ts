@@ -70,8 +70,8 @@ export class FormTemplateRepository {
 
   async create(input: CreateTemplateInput): Promise<FormTemplate> {
     const parsed = parseSchema(input.schema);
-    if ("code" in parsed) {
-      throw new Error(parsed.message);
+    if (!parsed.success) {
+      throw new Error(parsed.error.message);
     }
 
     const { data, error } = await this.supabase
@@ -80,7 +80,7 @@ export class FormTemplateRepository {
         slug: input.slug,
         name: input.name,
         description: input.description ?? null,
-        schema: formatSchema(parsed) as unknown as JSON,
+        schema: formatSchema(parsed.data) as unknown as JSON,
         version: 1,
       })
       .select("*")
@@ -99,11 +99,11 @@ export class FormTemplateRepository {
 
     if (input.schema) {
       const parsed = parseSchema(input.schema);
-      if ("code" in parsed) {
-        throw new Error(parsed.message);
+      if (!parsed.success) {
+        throw new Error(parsed.error.message);
       }
-      newSchema = parsed;
-      updateData.schema = formatSchema(parsed) as unknown as JSON;
+      newSchema = parsed.data;
+      updateData.schema = formatSchema(parsed.data) as unknown as JSON;
     }
 
     if (input.name !== undefined) updateData.name = input.name;

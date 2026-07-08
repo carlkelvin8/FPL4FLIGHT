@@ -1,15 +1,17 @@
 import { useEffect } from "react";
 import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
-import { Stack, useSegments, useRouter } from "expo-router";
+import { Stack, useSegments, useRouter, useRootNavigationState } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useAuthStore } from "../src/features/auth/stores/authStore";
-import { AuthRepository } from "../src/features/auth/repositories/AuthRepository";
-import { RefreshTokenUseCase } from "../src/features/auth/usecases/RefreshTokenUseCase";
-import { secureStorage, SESSION_KEY } from "../src/core/storage";
+import { secureStorage, SESSION_KEY, AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from "../src/core/storage";
+import { supabase } from "../src/core/network";
 import { colors } from "../src/shared/theme";
+import { ErrorBoundary as ErrorBoundaryClass } from "../src/shared/components/ErrorBoundary";
+const ErrorBoundary = ErrorBoundaryClass as any;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,13 +22,31 @@ const queryClient = new QueryClient({
   },
 });
 
-const repo = new AuthRepository();
-const refreshTokenUseCase = new RefreshTokenUseCase(repo);
-
-function AuthGate({ children }: { children: React.ReactNode }) {
+function useProtectedRoute() {
   const segments = useSegments();
   const router = useRouter();
-  const { session, isLoading, setSession, setUser, setLoading, reset } = useAuthStore();
+  const navigationState = useRootNavigationState();
+  const { session, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    if (!navigationState?.key || isLoading) return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    const timer = setTimeout(() => {
+      if (!session && !inAuthGroup) {
+        router.replace("/(auth)/login");
+      } else if (session && inAuthGroup) {
+        router.replace("/(app)/forms");
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [session, isLoading, segments, navigationState?.key]);
+}
+
+function AuthSessionRestorer() {
+  const { setSession, setUser, setLoading, reset } = useAuthStore();
 
   useEffect(() => {
     let mounted = true;
@@ -34,32 +54,29 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     async function restoreSession() {
       setLoading(true);
       try {
-        const raw = await secureStorage.get(SESSION_KEY);
-        if (raw) {
-          const stored = JSON.parse(raw) as {
-            userId: string;
-            accessToken: string;
-            refreshToken: string;
-            expiresAt: string;
-            role: "pilot" | "admin";
-          };
+        // Add timeout to prevent infinite loading
+        const sessionPromise = supabase.auth.getSession();
+        const timeout = new Promise<{ data: { session: null } }>((resolve) => 
+          setTimeout(() => resolve({ data: { session: null } }), 5000)
+        );
+        const { data: { session: currentSession } } = await Promise.race([sessionPromise, timeout]);
 
-          const expiresAt = new Date(stored.expiresAt);
-          const now = new Date();
-
-          if (expiresAt > now) {
-            if (!mounted) return;
-            setSession({ ...stored, expiresAt });
-            setUser({ id: stored.userId, email: "", role: stored.role });
-          } else {
-            const result = await refreshTokenUseCase.execute();
-            if (result.success && mounted) {
-              setSession(result.data);
-              setUser({ id: result.data.userId, email: "", role: result.data.role });
-            } else {
-              if (mounted) reset();
-            }
-          }
+        if (currentSession && currentSession.user && mounted) {
+          const su = currentSession.user;
+          setSession({
+            userId: su.id,
+            accessToken: currentSession.access_token,
+            refreshToken: currentSession.refresh_token,
+            expiresAt: new Date(currentSession.expires_at! * 1000),
+            role: (su.user_metadata?.role as "pilot" | "admin") ?? "pilot",
+          });
+          setUser({ id: su.id, email: su.email ?? "", role: "pilot" });
+        } else {
+          // No valid session — clear any stale local tokens
+          await secureStorage.delete(SESSION_KEY).catch(() => {});
+          await secureStorage.delete(AUTH_TOKEN_KEY).catch(() => {});
+          await secureStorage.delete(REFRESH_TOKEN_KEY).catch(() => {});
+          if (mounted) reset();
         }
       } catch {
         if (mounted) reset();
@@ -72,41 +89,39 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    if (isLoading) return;
-    const inAuthGroup = segments[0] === "(auth)";
-    if (!session && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    } else if (session && inAuthGroup) {
-      router.replace("/(app)/forms");
-    }
-  }, [session, isLoading, segments]);
+  return null;
+}
 
-  if (isLoading) {
-    return (
-      <View style={styles.splash}>
-        <Text style={styles.splashIcon}>▲</Text>
-        <Text style={styles.splashText}>PilotForms</Text>
-        <ActivityIndicator size="small" color={colors.brand[400]} style={{ marginTop: 16 }} />
-      </View>
-    );
-  }
+function LoadingOverlay() {
+  const { isLoading } = useAuthStore();
 
-  return <>{children}</>;
+  if (!isLoading) return null;
+
+  return (
+    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(300)} style={styles.splash}>
+      <Text style={styles.splashIcon}>▲</Text>
+      <Text style={styles.splashText}>FPL4FLIGHT</Text>
+      <ActivityIndicator size="small" color={colors.brand[400]} style={{ marginTop: 16 }} />
+    </Animated.View>
+  );
 }
 
 export default function RootLayout() {
+  useProtectedRoute();
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="dark" />
-          <AuthGate>
-            <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(app)" />
+          <AuthSessionRestorer />
+          <LoadingOverlay />
+          <ErrorBoundary>
+            <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+              <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+              <Stack.Screen name="(app)" options={{ animation: "fade" }} />
             </Stack>
-          </AuthGate>
+          </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -115,10 +130,11 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   splash: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.runway[50],
+    zIndex: 100,
   },
   splashIcon: {
     fontSize: 40,

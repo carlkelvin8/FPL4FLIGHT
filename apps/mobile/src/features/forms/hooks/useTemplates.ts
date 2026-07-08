@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { formTemplateRepository } from "../repositories/FormTemplateRepository";
 import type { FormTemplate } from "@pilotforms/shared";
+import { useQuery } from "@tanstack/react-query";
+
+import { formTemplateRepository } from "../repositories/FormTemplateRepository";
 
 const TEMPLATES_KEY = ["form_templates"];
 
@@ -9,10 +10,14 @@ export function useTemplates() {
     queryKey: TEMPLATES_KEY,
     queryFn: async () => {
       const result = await formTemplateRepository.findAll();
-      if (!result.success) throw new Error(result.error.message);
+      if (!result.success) {
+        console.warn("Templates fetch error:", result.error);
+        return [];
+      }
       return result.data;
     },
     staleTime: 1000 * 60 * 10,
+    retry: 1,
   });
 
   return {

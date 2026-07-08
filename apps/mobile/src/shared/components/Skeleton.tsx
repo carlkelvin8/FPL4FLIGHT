@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
+
 import { colors, borderRadius } from "../theme";
 
 interface SkeletonProps {

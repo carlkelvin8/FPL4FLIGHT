@@ -1,7 +1,7 @@
-import type { IFormRepository } from "@pilotforms/shared";
-import type { Result, FormInstance, CreateFormDto, UpdateFormDto, FormFilters, PaginatedResult } from "@pilotforms/shared";
+import type { IFormRepository , Result, FormInstance, CreateFormDto, UpdateFormDto, FormFilters, PaginatedResult } from "@pilotforms/shared";
 import { ok, err } from "@pilotforms/shared";
-import { supabase } from "../../../core/network";
+
+import { supabase } from "@core/network";
 
 interface FormInstanceRow {
   id: string;
@@ -37,7 +37,7 @@ export class FormRepository implements IFormRepository {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return err("UNAUTHORIZED", "You must be signed in to create forms.");
 
-      const { data, error } = await supabase
+      const response = await supabase
         .from("form_instances")
         .insert({
           user_id: user.id,
@@ -48,8 +48,8 @@ export class FormRepository implements IFormRepository {
         .select()
         .single();
 
-      if (error) return err("DB_ERROR", error.message, error);
-      return ok(rowToInstance(data));
+      if (response.error) return err("DB_ERROR", response.error.message, response.error);
+      return ok(rowToInstance(response.data as FormInstanceRow));
     } catch (e) {
       return err("NETWORK_ERROR", "Network error creating form.", e);
     }
@@ -57,14 +57,14 @@ export class FormRepository implements IFormRepository {
 
   async findById(id: string): Promise<Result<FormInstance>> {
     try {
-      const { data, error } = await supabase
+      const response = await supabase
         .from("form_instances")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) return err("NOT_FOUND", error.message, error);
-      return ok(rowToInstance(data));
+      if (response.error) return err("NOT_FOUND", response.error.message, response.error);
+      return ok(rowToInstance(response.data as FormInstanceRow));
     } catch (e) {
       return err("NETWORK_ERROR", "Network error fetching form.", e);
     }
@@ -88,14 +88,14 @@ export class FormRepository implements IFormRepository {
         query = query.textSearch("data", filters.search);
       }
 
-      const { data, error, count } = await query;
+      const response = await query;
 
-      if (error) return err("DB_ERROR", error.message, error);
+      if (response.error) return err("DB_ERROR", response.error.message, response.error);
 
-      const items = (data ?? []).map(rowToInstance);
+      const items = (response.data ?? []).map(rowToInstance);
       return ok({
         items,
-        total: count ?? items.length,
+        total: response.count ?? items.length,
         page: 1,
         pageSize: 50,
       });
@@ -111,15 +111,15 @@ export class FormRepository implements IFormRepository {
       if (dto.data) payload.data = dto.data;
       if (dto.submittedAt !== undefined) payload.submitted_at = dto.submittedAt?.toISOString() ?? null;
 
-      const { data, error } = await supabase
+      const response = await supabase
         .from("form_instances")
         .update(payload)
         .eq("id", id)
         .select()
         .single();
 
-      if (error) return err("DB_ERROR", error.message, error);
-      return ok(rowToInstance(data));
+      if (response.error) return err("DB_ERROR", response.error.message, response.error);
+      return ok(rowToInstance(response.data as FormInstanceRow));
     } catch (e) {
       return err("NETWORK_ERROR", "Network error updating form.", e);
     }

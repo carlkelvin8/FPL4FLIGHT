@@ -4,18 +4,16 @@
  * stores/clears JWT tokens in expo-secure-store.
  */
 
-import type { IAuthRepository } from "@pilotforms/shared";
-import type { Result } from "@pilotforms/shared";
-import type { Session } from "@pilotforms/shared";
-import type { SignInDto } from "@pilotforms/shared";
+import type { IAuthRepository , Result , Session , SignInDto } from "@pilotforms/shared";
 import { ok, err } from "@pilotforms/shared";
-import { supabase } from "../../../core/network";
+
+import { supabase } from "@core/network";
 import {
   secureStorage,
   AUTH_TOKEN_KEY,
   REFRESH_TOKEN_KEY,
   SESSION_KEY,
-} from "../../../core/storage";
+} from "@core/storage";
 
 // ---------------------------------------------------------------------------
 // Error code constants
@@ -153,9 +151,21 @@ export class AuthRepository implements IAuthRepository {
         password: credentials.password,
       });
 
-      if (error || !data.session) {
+      if (error) {
         const mapped = mapSupabaseError(error);
         return err(mapped.code, mapped.message, error);
+      }
+
+      // If MFA is enrolled, Supabase may not return a session directly
+      if (!data.session) {
+        // Try to get current session anyway (some Supabase versions handle MFA differently)
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          const session = mapSupabaseSession(sessionData.session);
+          await persistSession(session);
+          return ok(session);
+        }
+        return err(AUTH_ERROR_CODES.INVALID_CREDENTIALS, "Sign in failed. Please check your credentials.");
       }
 
       const session = mapSupabaseSession(data.session);

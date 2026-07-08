@@ -1,5 +1,6 @@
-import { supabase } from "../../../core/network";
 import { ok, err, type Result } from "@pilotforms/shared";
+
+import { supabase } from "@core/network";
 
 export interface NotificationItem {
   id: string;
@@ -39,9 +40,13 @@ function rowToNotification(row: NotificationRow): NotificationItem {
 export class NotificationRepository {
   async findAll(): Promise<Result<NotificationItem[]>> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return err("UNAUTHORIZED", "Not authenticated.");
+
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -94,7 +99,7 @@ export class NotificationRepository {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(subscription);
+      void supabase.removeChannel(subscription);
     };
   }
 }

@@ -624,6 +624,76 @@ INSERT INTO public.form_templates (
 
 
 -- ---------------------------------------------------------------------------
+-- Additional seed users
+-- ---------------------------------------------------------------------------
+
+-- CFI Instructor
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) VALUES (
+  '00000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated',
+  'instructor@pilotforms.dev',
+  crypt('Pilot1234!', gen_salt('bf', 12)),
+  now(),
+  '{"provider": "email", "providers": ["email"]}',
+  '{"full_name": "Mike Johnson"}',
+  now(), now()
+) ON CONFLICT (id) DO NOTHING;
+
+-- Student pilot
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) VALUES (
+  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated',
+  'student@pilotforms.dev',
+  crypt('Pilot1234!', gen_salt('bf', 12)),
+  now(),
+  '{"provider": "email", "providers": ["email"]}',
+  '{"full_name": "Sarah Connor"}',
+  now(), now()
+) ON CONFLICT (id) DO NOTHING;
+
+-- ATP (Airline Transport Pilot)
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at) VALUES (
+  '00000000-0000-0000-0000-000000000005',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated',
+  'atp@pilotforms.dev',
+  crypt('Pilot1234!', gen_salt('bf', 12)),
+  now(),
+  '{"provider": "email", "providers": ["email"]}',
+  '{"full_name": "Capt. David Miller"}',
+  now(), now()
+) ON CONFLICT (id) DO NOTHING;
+
+-- Profiles
+INSERT INTO public.profiles (id, full_name, role, created_at, updated_at) VALUES
+  ('00000000-0000-0000-0000-000000000003', 'Mike Johnson',    'pilot', now(), now()),
+  ('00000000-0000-0000-0000-000000000004', 'Sarah Connor',    'pilot', now(), now()),
+  ('00000000-0000-0000-0000-000000000005', 'Capt. David Miller', 'pilot', now(), now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Pilot profiles (license details)
+INSERT INTO public.pilot_profiles (user_id, license_number, license_type, license_expiry, certificate_number, ratings, endorsements) VALUES
+  ('00000000-0000-0000-0000-000000000003', 'P-654321', 'Certified Flight Instructor', '2028-06-30', 'CFI-11223',
+   ARRAY['Instrument Rating', 'Multi-Engine', 'CFI-A', 'CFI-I'],
+   ARRAY['High Performance', 'Complex Aircraft', 'Tailwheel']),
+  ('00000000-0000-0000-0000-000000000004', 'P-789012', 'Student Pilot', '2026-03-15', NULL,
+   ARRAY[]::TEXT[],
+   ARRAY[]::TEXT[]),
+  ('00000000-0000-0000-0000-000000000005', 'P-345678', 'Airline Transport Pilot', '2027-09-30', 'ATP-99887',
+   ARRAY['Instrument Rating', 'Multi-Engine', 'Type Rating: B737', 'Type Rating: A320'],
+   ARRAY['High Performance', 'Complex Aircraft', 'Turbojet'])
+ON CONFLICT (user_id) DO NOTHING;
+
+-- Aircraft
+INSERT INTO public.aircraft (user_id, registration_number, make, model, year, aircraft_type, engine_type) VALUES
+  ('00000000-0000-0000-0000-000000000002', 'N54321', 'Cessna', '172 Skyhawk', 2018, 'Single-Engine Land', 'Piston'),
+  ('00000000-0000-0000-0000-000000000003', 'N98765', 'Piper', 'PA-28 Cherokee', 2015, 'Single-Engine Land', 'Piston'),
+  ('00000000-0000-0000-0000-000000000003', 'N45678', 'Cessna', '152', 2012, 'Single-Engine Land', 'Piston'),
+  ('00000000-0000-0000-0000-000000000005', 'N24680', 'Beechcraft', 'Baron G58', 2020, 'Multi-Engine Land', 'Piston');
+
+-- ---------------------------------------------------------------------------
 -- Subscriptions  (one per user)
 -- ---------------------------------------------------------------------------
 
@@ -663,4 +733,34 @@ INSERT INTO public.subscriptions (
   now() + INTERVAL '14 days',
   now() + INTERVAL '14 days',
   null
+) ON CONFLICT (id) DO NOTHING;
+
+-- Instructor: active monthly subscription
+INSERT INTO public.subscriptions (id, user_id, status, plan, trial_ends_at, current_period_end, external_id) VALUES (
+  '20000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000003',
+  'active', 'monthly',
+  null,
+  now() + INTERVAL '1 month',
+  'INSTRUCTOR_INTERNAL'
+) ON CONFLICT (id) DO NOTHING;
+
+-- Student: expired/canceled subscription (past due)
+INSERT INTO public.subscriptions (id, user_id, status, plan, trial_ends_at, current_period_end, external_id) VALUES (
+  '20000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000004',
+  'canceled', 'monthly',
+  null,
+  now() - INTERVAL '7 days',
+  null
+) ON CONFLICT (id) DO NOTHING;
+
+-- ATP: active annual subscription
+INSERT INTO public.subscriptions (id, user_id, status, plan, trial_ends_at, current_period_end, external_id) VALUES (
+  '20000000-0000-0000-0000-000000000005',
+  '00000000-0000-0000-0000-000000000005',
+  'active', 'annual',
+  null,
+  now() + INTERVAL '1 year',
+  'ATP_INTERNAL'
 ) ON CONFLICT (id) DO NOTHING;

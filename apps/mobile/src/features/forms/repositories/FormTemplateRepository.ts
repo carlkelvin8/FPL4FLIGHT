@@ -1,7 +1,7 @@
-import type { IFormTemplateRepository } from "@pilotforms/shared";
-import type { Result, FormTemplate, FormSchema } from "@pilotforms/shared";
+import type { IFormTemplateRepository , Result, FormTemplate, FormSchema } from "@pilotforms/shared";
 import { ok, err } from "@pilotforms/shared";
-import { supabase } from "../../../core/network";
+
+import { supabase } from "@core/network";
 
 interface FormTemplateRow {
   id: string;
@@ -51,14 +51,14 @@ export class FormTemplateRepository implements IFormTemplateRepository {
 
   async findById(id: string): Promise<Result<FormTemplate>> {
     try {
-      const { data, error } = await supabase
+      const response = await supabase
         .from("form_templates")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) return err("NOT_FOUND", error.message, error);
-      return ok(rowToTemplate(data));
+      if (response.error) return err("NOT_FOUND", response.error.message, response.error);
+      return ok(rowToTemplate(response.data as FormTemplateRow));
     } catch (e) {
       return err("NETWORK_ERROR", "Network error fetching template.", e);
     }
@@ -66,15 +66,15 @@ export class FormTemplateRepository implements IFormTemplateRepository {
 
   async findByVersion(id: string, version: number): Promise<Result<FormTemplate>> {
     try {
-      const { data, error } = await supabase
+      const response = await supabase
         .from("form_templates")
         .select("*")
         .eq("id", id)
         .eq("version", version)
         .single();
 
-      if (error) return err("NOT_FOUND", error.message, error);
-      return ok(rowToTemplate(data));
+      if (response.error) return err("NOT_FOUND", response.error.message, response.error);
+      return ok(rowToTemplate(response.data as FormTemplateRow));
     } catch (e) {
       return err("NETWORK_ERROR", "Network error fetching template version.", e);
     }

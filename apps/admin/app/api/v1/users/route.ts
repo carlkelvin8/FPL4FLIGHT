@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export function GET() {
   return NextResponse.json(
     { message: "Users API — implemented in Task 27." },
     { status: 200 },

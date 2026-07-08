@@ -1,10 +1,9 @@
-import React, { Component, type ReactNode } from "react";
+import React, { Component } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
 interface Props {
-  children: ReactNode;
-  /** Optional fallback UI. Receives the error and a reset callback. */
-  fallback?: (error: Error, resetError: () => void) => ReactNode;
+  children: React.ReactNode;
+  fallback?: (error: Error, resetError: () => void) => React.ReactNode;
 }
 
 interface State {
@@ -31,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  override componentDidCatch(error: Error, info: React.ErrorInfo): void {
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
     // Error reporting (e.g. Sentry) will be wired in Task 28.
     console.error("[ErrorBoundary] Caught error:", error, info.componentStack);
   }
@@ -40,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: null });
   };
 
-  override render(): ReactNode {
+  render(): React.ReactNode {
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 

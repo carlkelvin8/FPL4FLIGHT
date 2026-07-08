@@ -3,7 +3,6 @@
  * Concrete implementations (Supabase, SQLite) live in the data layer.
  */
 
-import type { Result } from "../types/result";
 import type { FormInstance } from "../entities/form";
 import type {
   CreateFormDto,
@@ -11,6 +10,7 @@ import type {
   FormFilters,
   PaginatedResult,
 } from "../types/dtos";
+import type { Result } from "../types/result";
 
 export interface IFormRepository {
   create(form: CreateFormDto): Promise<Result<FormInstance>>;

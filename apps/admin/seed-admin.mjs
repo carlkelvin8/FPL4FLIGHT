@@ -65,7 +65,6 @@ async function main() {
       },
       body: JSON.stringify({
         id: userId,
-        email,
         full_name: "Admin User",
         role: "admin",
       }),

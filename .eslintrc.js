@@ -7,6 +7,17 @@ module.exports = {
     sourceType: "module",
     project: true,
   },
+  settings: {
+    "import/resolver": {
+      typescript: {
+        alwaysTryTypes: true,
+        project: [
+          "packages/*/tsconfig.json",
+          "apps/*/tsconfig.json",
+        ],
+      },
+    },
+  },
   plugins: ["@typescript-eslint", "import"],
   extends: [
     "eslint:recommended",
@@ -49,6 +60,14 @@ module.exports = {
       rules: {
         "@typescript-eslint/no-explicit-any": "off",
         "no-console": "off",
+      },
+    },
+    {
+      // Path aliases (@/) are resolved by the framework (Next.js, Expo), not by ESLint
+      files: ["apps/admin/**", "apps/mobile/**"],
+      rules: {
+        "import/no-unresolved": "off",
+        "import/order": "off",
       },
     },
   ],

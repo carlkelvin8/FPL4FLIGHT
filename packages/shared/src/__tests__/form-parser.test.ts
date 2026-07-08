@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { parseSchema, parseTemplate } from "../form-schema/FormParser";
 import { formatSchema } from "../form-schema/FormTemplateFormatter";
 
@@ -71,26 +72,25 @@ const validSchema = {
 describe("parseSchema", () => {
   it("parses a valid schema", () => {
     const result = parseSchema(validSchema);
-    expect(result).not.toBeNull();
-    if (!("code" in result)) {
-      expect(result.sections).toHaveLength(1);
-      expect(result.sections[0].fields).toHaveLength(8);
-      expect(result.metadata.formType).toBe("pre-flight");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sections).toHaveLength(1);
+      expect(result.data.sections[0]!.fields).toHaveLength(8);
+      expect(result.data.metadata.formType).toBe("pre-flight");
     }
   });
 
   it("returns error for non-object input", () => {
     const result = parseSchema("not-an-object");
-    if ("code" in result) {
-      expect(result.code).toBe("TEMPLATE_INVALID_SCHEMA");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("TEMPLATE_INVALID_SCHEMA");
     }
   });
 
   it("rejects empty sections", () => {
     const result = parseSchema({ sections: [], metadata: { formType: "test" } });
-    if ("code" in result) {
-      expect(result.code).toBe("TEMPLATE_INVALID_SCHEMA");
-    }
+    expect(result.success).toBe(false);
   });
 
   it("rejects missing metadata.formType", () => {
@@ -98,9 +98,7 @@ describe("parseSchema", () => {
       sections: [{ id: "s1", title: "S1", fields: [{ id: "f1", label: "F1", type: "text" }] }],
       metadata: {},
     });
-    if ("code" in result) {
-      expect(result.code).toBe("TEMPLATE_INVALID_SCHEMA");
-    }
+    expect(result.success).toBe(false);
   });
 
   it("rejects unknown field types", () => {
@@ -108,9 +106,7 @@ describe("parseSchema", () => {
       sections: [{ id: "s1", title: "S1", fields: [{ id: "f1", label: "F1", type: "unknown-type" }] }],
       metadata: { formType: "test" },
     });
-    if ("code" in result) {
-      expect(result.code).toBe("TEMPLATE_INVALID_SCHEMA");
-    }
+    expect(result.success).toBe(false);
   });
 
   it("detects duplicate field ids", () => {
@@ -128,8 +124,9 @@ describe("parseSchema", () => {
       metadata: { formType: "test" },
     };
     const result = parseSchema(schema);
-    if ("code" in result) {
-      expect(result.code).toBe("TEMPLATE_DUPLICATE_FIELD_ID");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("TEMPLATE_DUPLICATE_FIELD_ID");
     }
   });
 });
@@ -137,35 +134,33 @@ describe("parseSchema", () => {
 describe("parseTemplate", () => {
   it("parses a valid JSON string", () => {
     const result = parseTemplate(JSON.stringify(validSchema));
-    expect(result).not.toBeNull();
-    if (!("code" in result)) {
-      expect(result.sections).toHaveLength(1);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sections).toHaveLength(1);
     }
   });
 
   it("returns error for invalid JSON", () => {
     const result = parseTemplate("{invalid}");
-    if ("code" in result) {
-      expect(result.code).toBe("TEMPLATE_INVALID_SCHEMA");
-    }
+    expect(result.success).toBe(false);
   });
 });
 
 describe("round-trip: parseSchema -> formatSchema -> parseSchema", () => {
   it("preserves all field types through round-trip", () => {
     const parsed = parseSchema(validSchema);
-    if ("code" in parsed) throw new Error("Parse failed");
+    if (!parsed.success) throw new Error("Parse failed");
 
-    const formatted = formatSchema(parsed);
+    const formatted = formatSchema(parsed.data);
     const reparsed = parseSchema(formatted);
 
-    if ("code" in reparsed) throw new Error("Re-parse failed");
-    expect(reparsed.sections).toHaveLength(parsed.sections.length);
-    expect(reparsed.sections[0].fields).toHaveLength(
-      parsed.sections[0].fields.length,
+    if (!reparsed.success) throw new Error("Re-parse failed");
+    expect(reparsed.data.sections).toHaveLength(parsed.data.sections.length);
+    expect(reparsed.data.sections[0]!.fields).toHaveLength(
+      parsed.data.sections[0]!.fields.length,
     );
-    reparsed.sections[0].fields.forEach((field, i) => {
-      const original = parsed.sections[0].fields[i];
+    reparsed.data.sections[0]!.fields.forEach((field, i) => {
+      const original = parsed.data.sections[0]!.fields[i]!;
       expect(field.id).toBe(original.id);
       expect(field.label).toBe(original.label);
       expect(field.type).toBe(original.type);
@@ -187,8 +182,8 @@ describe("field-level validation", () => {
       metadata: { formType: "test" },
     };
     const result = parseSchema(schema);
-    if ("code" in result) throw new Error("Parse failed");
-    const field = result.sections[0].fields[0];
+    if (!result.success) throw new Error("Parse failed");
+    const field = result.data.sections[0]!.fields[0]!;
     if (field.type === "photo") {
       expect(field.maxPhotos).toBe(10);
     }
@@ -206,8 +201,8 @@ describe("field-level validation", () => {
       metadata: { formType: "test" },
     };
     const result = parseSchema(schema);
-    if ("code" in result) throw new Error("Parse failed");
-    expect(result.sections[0].fields[0].required).toBe(false);
+    if (!result.success) throw new Error("Parse failed");
+    expect(result.data.sections[0]!.fields[0]!.required).toBe(false);
   });
 
   it("parses conditional rules", () => {
@@ -230,10 +225,50 @@ describe("field-level validation", () => {
       metadata: { formType: "test" },
     };
     const result = parseSchema(schema);
-    if ("code" in result) throw new Error("Parse failed");
-    const field = result.sections[0].fields[1];
+    if (!result.success) throw new Error("Parse failed");
+    const field = result.data.sections[0]!.fields[1]!;
     expect(field.conditional).toBeDefined();
     expect(field.conditional?.fieldId).toBe("trigger");
     expect(field.conditional?.operator).toBe("equals");
+  });
+
+  it("rejects conditional referencing non-existent field", () => {
+    const schema = {
+      sections: [
+        {
+          id: "s1",
+          title: "S1",
+          fields: [
+            {
+              id: "bad-ref",
+              label: "Bad",
+              type: "text",
+              conditional: { fieldId: "nonexistent", operator: "equals", value: true },
+            },
+          ],
+        },
+      ],
+      metadata: { formType: "test" },
+    };
+    const result = parseSchema(schema);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("TEMPLATE_INVALID_CROSS_FIELD_REFERENCE");
+    }
+  });
+
+  it("rejects duplicate section ids", () => {
+    const schema = {
+      sections: [
+        { id: "dup", title: "S1", fields: [{ id: "f1", label: "F1", type: "text" }] },
+        { id: "dup", title: "S2", fields: [{ id: "f2", label: "F2", type: "text" }] },
+      ],
+      metadata: { formType: "test" },
+    };
+    const result = parseSchema(schema);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe("TEMPLATE_DUPLICATE_SECTION_ID");
+    }
   });
 });

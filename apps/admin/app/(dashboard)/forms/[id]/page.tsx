@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
 import { supabaseConfigured } from "@/lib/supabase/server";
 import { FormTemplateRepository } from "@/features/form-builder/repository";
 import { TemplateEditor } from "@/features/form-builder/components/template-editor";

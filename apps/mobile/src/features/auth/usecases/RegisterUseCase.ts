@@ -3,17 +3,17 @@
  * Uses the Supabase client directly for signUp (not part of IAuthRepository).
  */
 
-import type { Result } from "@pilotforms/shared";
-import type { Session } from "@pilotforms/shared";
+import type { Result , Session } from "@pilotforms/shared";
 import { ok, err } from "@pilotforms/shared";
-import { supabase } from "../../../core/network";
+
+import { supabase } from "@core/network";
 import {
   secureStorage,
   AUTH_TOKEN_KEY,
   REFRESH_TOKEN_KEY,
   SESSION_KEY,
-} from "../../../core/storage";
-import { validateEmail, validatePasswordComplexity } from "../../../shared/utils/validationUtils";
+} from "@core/storage";
+import { validateEmail, validatePasswordComplexity } from "@shared/utils/validationUtils";
 import { AUTH_ERROR_CODES } from "../repositories/AuthRepository";
 
 export interface RegisterDto {

@@ -1,4 +1,5 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
+
 import { RegisterUseCase } from "../usecases/RegisterUseCase";
 
 jest.mock("../../../core/network", () => ({

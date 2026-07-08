@@ -3,8 +3,8 @@
  * Concrete implementation lives in the mobile sync feature module.
  */
 
-import type { Result } from "../types/result";
 import type { SyncReport, SyncOperation, SyncStatus } from "../entities/sync";
+import type { Result } from "../types/result";
 
 export interface ISyncEngine {
   /**

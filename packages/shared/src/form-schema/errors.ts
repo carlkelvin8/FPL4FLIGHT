@@ -3,10 +3,9 @@ import type { AppError } from "../types/result";
 export type ParseErrorCode =
   | "TEMPLATE_INVALID_SCHEMA"
   | "TEMPLATE_DUPLICATE_FIELD_ID"
-  | "TEMPLATE_EMPTY_SECTION"
-  | "TEMPLATE_EMPTY_FIELDS"
-  | "TEMPLATE_MISSING_TYPE"
-  | "TEMPLATE_INVALID_FIELD_TYPE";
+  | "TEMPLATE_INVALID_FIELD_TYPE"
+  | "TEMPLATE_DUPLICATE_SECTION_ID"
+  | "TEMPLATE_INVALID_CROSS_FIELD_REFERENCE";
 
 export interface ParseError extends AppError {
   code: ParseErrorCode;

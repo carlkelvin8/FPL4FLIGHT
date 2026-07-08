@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../../src/shared/theme";
+import { colors } from "@shared/theme";
 
 export default function AppLayout() {
   return (
@@ -10,47 +10,61 @@ export default function AppLayout() {
         tabBarActiveTintColor: colors.brand[600],
         tabBarInactiveTintColor: colors.runway[400],
         tabBarStyle: {
-          borderTopColor: colors.runway[200],
+          borderTopWidth: 0,
           backgroundColor: colors.white,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 60,
+          paddingBottom: 12,
+          paddingTop: 12,
+          height: 74,
           shadowColor: colors.black,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
-          elevation: 8,
+          shadowOffset: { width: 0, height: -6 },
+          shadowOpacity: 0.12,
+          shadowRadius: 24,
+          elevation: 20,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontSize: 10,
+          fontWeight: "700",
+          marginTop: 4,
+          letterSpacing: 0.3,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
         },
       }}
     >
       <Tabs.Screen
         name="forms"
         options={{
-          title: "Forms",
+          title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="templates"
+        name="aircraft"
         options={{
-          title: "Templates",
+          title: "Aircraft",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="layers-outline" size={size} color={color} />
+            <Ionicons name="airplane" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="schedule"
         options={{
-          title: "Alerts",
+          title: "Flights",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications-outline" size={size} color={color} />
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map-outline" size={size} color={color} />
           ),
         }}
       />
@@ -64,6 +78,17 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="account" options={{ href: null }} />
+      <Tabs.Screen name="qrcode" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="templates" options={{ href: null }} />
+      <Tabs.Screen name="terms" options={{ href: null }} />
+      <Tabs.Screen name="privacy" options={{ href: null }} />
+      <Tabs.Screen name="licenses" options={{ href: null }} />
+      <Tabs.Screen name="billing" options={{ href: null }} />
+      <Tabs.Screen name="team" options={{ href: null }} />
+      <Tabs.Screen name="help" options={{ href: null }} />
+      <Tabs.Screen name="form-editor" options={{ href: null }} />
     </Tabs>
   );
 }

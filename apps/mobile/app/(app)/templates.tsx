@@ -1,24 +1,62 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
-  View, Text, TextInput, FlatList, StyleSheet, ActivityIndicator,
+  View, Text, TextInput, FlatList, StyleSheet, RefreshControl, Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTemplates } from "../../src/features/forms/hooks/useTemplates";
-import { colors, spacing, borderRadius, fontSize, shadows } from "../../src/shared/theme";
-import { Card } from "../../src/shared/components/Card";
-import { PressableScale } from "../../src/shared/components/PressableScale";
-import { SkeletonCard } from "../../src/shared/components/Skeleton";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { useTemplates } from "@features/forms/hooks/useTemplates";
+import { useForms } from "@features/forms/hooks/useForms";
+import { colors, spacing, borderRadius, fontSize, shadows } from "@shared/theme";
+import { Card } from "@shared/components/Card";
+import { PressableScale } from "@shared/components/PressableScale";
+import { SkeletonCard } from "@shared/components/Skeleton";
 
-const ICONS = ["🛡️", "⚙️", "✅", "☣️", "📋", "🔍", "🚨", "🔧", "📝", "📊", "🔬", "📑"];
+  const FORM_TYPE_ICONS: Record<string, { icon: string; color: string; bg: string }> = {
+  "pre-flight": { icon: "airplane-outline", color: "#1e3a5f", bg: "#e0f2fe" },
+  "post-flight": { icon: "checkmark-done-outline", color: "#166534", bg: "#dcfce7" },
+  "weight-balance": { icon: "scale-outline", color: "#7c3aed", bg: "#f3e8ff" },
+  "maintenance": { icon: "construct-outline", color: "#b45309", bg: "#fef3c7" },
+  "operations": { icon: "people-outline", color: "#0369a1", bg: "#e0f2fe" },
+  "planning": { icon: "calculator-outline", color: "#be185d", bg: "#fce7f3" },
+} satisfies Record<string, { icon: string; color: string; bg: string }>;
 
 export default function TemplatesScreen() {
   const insets = useSafeAreaInsets();
-  const { templates, isLoading, error } = useTemplates();
+  const { templates, isLoading, error, refetch } = useTemplates();
+  const { createForm } = useForms();
   const [search, setSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   const filtered = templates.filter((t) =>
-    t.name.toLowerCase().includes(search.toLowerCase())
+    t.name.toLowerCase().includes(search.toLowerCase()) ||
+    (t.description ?? "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  async function handleUseTemplate(templateId: string, templateVersion: number, templateName: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert("New Form", `Create a new "${templateName}" form?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Create",
+        onPress: async () => {
+          try {
+            await createForm({ templateId, templateVersion, data: {} });
+            Alert.alert("Done", `"${templateName}" form created. Check your Forms tab.`);
+          } catch (e: unknown) {
+            Alert.alert("Error", e instanceof Error ? e.message : "Failed to create form.");
+          }
+        },
+      },
+    ]);
+  }
 
   if (isLoading) {
     return (
@@ -40,6 +78,7 @@ export default function TemplatesScreen() {
       </View>
 
       <View style={styles.searchRow}>
+        <Ionicons name="search-outline" size={18} color={colors.runway[400]} style={styles.searchIcon} />
         <TextInput
           style={styles.search}
           placeholder="Search templates..."
@@ -48,12 +87,12 @@ export default function TemplatesScreen() {
           onChangeText={setSearch}
           autoCapitalize="none"
           autoCorrect={false}
-          accessibilityLabel="Search templates"
         />
       </View>
 
       {error && (
-        <View style={styles.errorBanner} accessibilityRole="alert">
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={16} color={colors.red[600]} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
@@ -61,37 +100,67 @@ export default function TemplatesScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
-        numColumns={2}
-        columnWrapperStyle={styles.colWrap}
-        renderItem={({ item, index }) => {
-          const sectionCount = item.schema.sections?.length ?? 0;
-          const fieldCount = item.schema.sections?.reduce((acc, s) => acc + (s.fields?.length ?? 0), 0) ?? 0;
-          const icon = ICONS[index % ICONS.length];
+        renderItem={({ item }) => {
+          const formType = item.schema?.metadata?.formType ?? "operations";
+          const meta = (FORM_TYPE_ICONS[formType] ?? FORM_TYPE_ICONS.operations) as NonNullable<typeof FORM_TYPE_ICONS[string]>;
+          const sectionCount = item.schema?.sections?.length ?? 0;
+          const fieldCount = item.schema?.sections?.reduce((acc: number, s: { fields?: unknown[] }) => acc + (s.fields?.length ?? 0), 0) ?? 0;
+          const estMins = item.schema?.metadata?.estimatedMinutes ?? "—";
+          const regulation = item.schema?.metadata?.regulatoryBasis ?? "";
 
           return (
-            <PressableScale style={styles.templateCard} haptic>
-              <Card variant="elevated" style={styles.cardInner}>
-                <Text style={styles.icon}>{icon}</Text>
-                <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
-                <View style={styles.metaRow}>
-                  <Text style={styles.meta}>{sectionCount} sections</Text>
-                  <Text style={styles.meta}>{fieldCount} fields</Text>
+            <PressableScale
+              style={styles.templateCard}
+              haptic
+              onPress={() => handleUseTemplate(item.id, item.version, item.name)}
+            >
+              <Card variant="elevated">
+                <View style={styles.cardRow}>
+                  <View style={[styles.iconBg, { backgroundColor: meta.bg }]}>  
+                    <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={22} color={meta.color} />
+                  </View>
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardName}>{item.name}</Text>
+                    {item.description && (
+                      <Text style={styles.cardDesc} numberOfLines={2}>{item.description}</Text>
+                    )}
+                    <View style={styles.cardMeta}>
+                      <View style={styles.metaChip}>
+                        <Ionicons name="layers-outline" size={12} color={colors.runway[500]} />
+                        <Text style={styles.metaText}>{sectionCount} sections</Text>
+                      </View>
+                      <View style={styles.metaChip}>
+                        <Ionicons name="list-outline" size={12} color={colors.runway[500]} />
+                        <Text style={styles.metaText}>{fieldCount} fields</Text>
+                      </View>
+                      <View style={styles.metaChip}>
+                        <Ionicons name="time-outline" size={12} color={colors.runway[500]} />
+                        <Text style={styles.metaText}>{estMins} min</Text>
+                      </View>
+                    </View>
+                    {regulation ? (
+                      <Text style={styles.regulation}>{regulation}</Text>
+                    ) : null}
+                  </View>
+                  <Ionicons name="add-circle" size={24} color={colors.brand[500]} />
                 </View>
-                {item.description && (
-                  <Text style={styles.desc} numberOfLines={2}>{item.description}</Text>
-                )}
               </Card>
             </PressableScale>
           );
         }}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} colors={[colors.brand[500]]} />
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📁</Text>
-            <Text style={styles.emptyTitle}>No templates found</Text>
+            <View style={styles.emptyIconBg}>
+              <Ionicons name="layers-outline" size={40} color={colors.runway[400]} />
+            </View>
+            <Text style={styles.emptyTitle}>No templates available</Text>
             <Text style={styles.emptySub}>
-              {search ? "Try a different search term" : "No templates available yet"}
+              {search ? "Try a different search" : "Templates will appear here when added by your admin"}
             </Text>
           </View>
         }
@@ -105,25 +174,24 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
   title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5 },
   count: { fontSize: fontSize.sm, color: colors.runway[400] },
-  searchRow: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  search: {
-    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.runway[200],
-    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
-    fontSize: fontSize.base, color: colors.runway[900], ...shadows.sm,
-  },
-  errorBanner: { backgroundColor: colors.red[50], marginHorizontal: spacing.lg, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100] },
-  errorText: { fontSize: fontSize.sm, color: colors.red[700] },
+  searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+  searchIcon: { position: "absolute", left: spacing.lg + spacing.sm, zIndex: 1 },
+  search: { flex: 1, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.runway[200], borderRadius: borderRadius.md, paddingHorizontal: spacing.lg + spacing.md, paddingVertical: spacing.sm + 2, fontSize: fontSize.base, color: colors.runway[900], ...shadows.sm },
+  errorBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.red[50], marginHorizontal: spacing.lg, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100] },
+  errorText: { fontSize: fontSize.sm, color: colors.red[700], flex: 1 },
   list: { paddingHorizontal: spacing.lg },
-  colWrap: { gap: spacing.sm },
-  templateCard: { width: "48%", marginBottom: spacing.sm },
-  cardInner: { alignItems: "center", paddingVertical: spacing.md },
-  icon: { fontSize: 36, marginBottom: spacing.sm },
-  name: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[900], textAlign: "center", marginBottom: spacing.xs },
-  metaRow: { flexDirection: "row", gap: spacing.xs, marginBottom: spacing.xs },
-  meta: { fontSize: fontSize.xs, color: colors.runway[400] },
-  desc: { fontSize: fontSize.xs, color: colors.runway[500], textAlign: "center", paddingHorizontal: spacing.xs },
+  templateCard: { marginBottom: spacing.sm },
+  cardRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  iconBg: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  cardContent: { flex: 1 },
+  cardName: { fontSize: fontSize.sm, fontWeight: "700", color: colors.runway[900] },
+  cardDesc: { fontSize: fontSize.xs, color: colors.runway[500], marginTop: 2 },
+  cardMeta: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs },
+  metaChip: { flexDirection: "row", alignItems: "center", gap: 3 },
+  metaText: { fontSize: 11, color: colors.runway[500] },
+  regulation: { fontSize: 10, color: colors.brand[600], fontWeight: "600", marginTop: 3 },
   empty: { alignItems: "center", paddingTop: spacing["3xl"] },
-  emptyIcon: { fontSize: 48, marginBottom: spacing.md },
+  emptyIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.runway[100], alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
   emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: colors.runway[700] },
-  emptySub: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.xs, textAlign: "center" },
+  emptySub: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.xs, textAlign: "center", paddingHorizontal: spacing.xl },
 });

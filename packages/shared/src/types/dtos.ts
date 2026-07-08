@@ -34,8 +34,10 @@ export interface SignInDto {
 // Query / Pagination helpers
 // ---------------------------------------------------------------------------
 
+export type FormStatus = "draft" | "completed" | "synced";
+
 export interface FormFilters {
-  status?: string[];
+  status?: FormStatus[];
   templateId?: string;
   dateFrom?: Date;
   dateTo?: Date;

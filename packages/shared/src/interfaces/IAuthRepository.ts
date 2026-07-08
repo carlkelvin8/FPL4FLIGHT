@@ -3,9 +3,9 @@
  * Concrete implementation wraps Supabase Auth in the data layer.
  */
 
-import type { Result } from "../types/result";
 import type { Session } from "../entities/session";
 import type { SignInDto } from "../types/dtos";
+import type { Result } from "../types/result";
 
 export interface IAuthRepository {
   signIn(credentials: SignInDto): Promise<Result<Session>>;

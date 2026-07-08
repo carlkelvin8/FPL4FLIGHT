@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import type { IAuthRepository } from "@pilotforms/shared";
-import type { Result } from "@pilotforms/shared";
+import type { IAuthRepository , Result } from "@pilotforms/shared";
+
 import { SignOutUseCase } from "../usecases/SignOutUseCase";
 
 function createMockRepo() {

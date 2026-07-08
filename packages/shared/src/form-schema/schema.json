@@ -28,7 +28,7 @@
       "required": ["formType"],
       "properties": {
         "formType": { "type": "string" },
-        "regulatoryBasis": { "type": "string" },
+        "regulatoryBasis": { "type": ["string", "null"] },
         "estimatedMinutes": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": false

@@ -1,22 +1,23 @@
-import { useCallback } from "react";
+import type { SignInDto } from "@pilotforms/shared";
 import { useRouter } from "expo-router";
+import { useCallback } from "react";
+
+import { AuthRepository, AUTH_ERROR_CODES } from "../repositories/AuthRepository";
 import { useAuthStore } from "../stores/authStore";
-import { AuthRepository } from "../repositories/AuthRepository";
+import { RegisterUseCase, type RegisterDto } from "../usecases/RegisterUseCase";
 import { SignInUseCase } from "../usecases/SignInUseCase";
 import { SignOutUseCase } from "../usecases/SignOutUseCase";
-import { RegisterUseCase, type RegisterDto } from "../usecases/RegisterUseCase";
-import { RefreshTokenUseCase } from "../usecases/RefreshTokenUseCase";
-import type { SignInDto } from "@pilotforms/shared";
+
 
 const repo = new AuthRepository();
 const signInUseCase = new SignInUseCase(repo);
 const signOutUseCase = new SignOutUseCase(repo);
 const registerUseCase = new RegisterUseCase();
-const refreshTokenUseCase = new RefreshTokenUseCase(repo);
 
 export function useAuth() {
   const router = useRouter();
-  const { session, user, isLoading, error, setSession, setUser, setLoading, setError, reset } =
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const { session, user, isLoading, error, mfaPending, setSession, setUser, setLoading, setError, setMfaPending, reset } =
     useAuthStore();
 
   const signIn = useCallback(
@@ -28,13 +29,14 @@ export function useAuth() {
         setSession(result.data);
         setUser({ id: result.data.userId, email: dto.email, role: result.data.role });
         setLoading(false);
+        // Explicitly navigate to app after successful login
         router.replace("/(app)/forms");
       } else {
         setError(result.error);
         setLoading(false);
       }
     },
-    [router, setError, setLoading, setSession, setUser],
+    [router, setError, setLoading, setMfaPending, setSession, setUser],
   );
 
   const signOut = useCallback(async () => {
@@ -55,7 +57,7 @@ export function useAuth() {
         setSession(result.data);
         setUser({ id: result.data.userId, email: dto.email, role: result.data.role });
         setLoading(false);
-        router.replace("/(app)/forms");
+        // Navigation handled by root auth guard on session change
       } else {
         setError(result.error);
         setLoading(false);
@@ -70,17 +72,18 @@ export function useAuth() {
       setError(null);
       const result = await repo.verifyMFA(code);
       if (result.success) {
+        setMfaPending(false);
         setSession(result.data);
         setUser({ id: result.data.userId, email: user?.email ?? "", role: result.data.role });
         setLoading(false);
-        router.replace("/(app)/forms");
+        // Navigation handled by root auth guard on session change
       } else {
         setError(result.error);
         setLoading(false);
       }
     },
-    [router, setError, setLoading, setSession, setUser, user],
+    [router, setError, setLoading, setMfaPending, setSession, setUser, user],
   );
 
-  return { session, user, isLoading, error, signIn, signOut, register, verifyMFA };
+  return { session, user, isLoading, error, mfaPending, signIn, signOut, register, verifyMFA };
 }

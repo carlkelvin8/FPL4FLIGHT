@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  Keyboard, TouchableWithoutFeedback,
 } from "react-native";
 import { Link } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useAuth } from "../../src/features/auth/hooks/useAuth";
-import { getPasswordStrength } from "../../src/shared/utils/validationUtils";
-import { colors, spacing, borderRadius, fontSize, shadows } from "../../src/shared/theme";
-import { PressableScale } from "../../src/shared/components/PressableScale";
+import Animated, { FadeInUp, FadeIn } from "react-native-reanimated";
+import { useAuth } from "@features/auth/hooks/useAuth";
+import { getPasswordStrength } from "@shared/utils/validationUtils";
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { PressableScale } from "@shared/components/PressableScale";
 
 const STRENGTH = ["Weak", "Fair", "Good", "Strong"] as const;
 const STRENGTH_COLORS = [colors.red[500], colors.amber[500], colors.brand[500], colors.green[500]] as const;
@@ -18,6 +19,8 @@ const STRENGTH_COLORS = [colors.red[500], colors.amber[500], colors.brand[500], 
 export default function RegisterScreen() {
   const { register, isLoading, error } = useAuth();
   const insets = useSafeAreaInsets();
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,152 +49,168 @@ export default function RegisterScreen() {
   const serverError = error?.message ?? null;
 
   return (
-    <View style={styles.flex}>
-      <StatusBar style="light" />
-      <LinearGradient colors={["#1e1b4b", "#312e81", "#4f46e5"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing["2xl"] }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.top}>
-            <View style={styles.pill}>
-              <Text style={styles.pillIcon}>▲</Text>
-              <Text style={styles.pillText}>PilotForms</Text>
-            </View>
-            <Text style={styles.title}>Create account</Text>
-            <Text style={styles.sub}>Join the fleet</Text>
-          </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.flex}>
+        <StatusBar style="dark" />
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <ScrollView
+            contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing["2xl"] }]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View entering={FadeInUp.delay(100).duration(400)} style={styles.topSection}>
+              <View style={styles.logo}>
+                <Text style={styles.logoIcon}>▲</Text>
+                <Text style={styles.brandName}>FPL4FLIGHT</Text>
+              </View>
+              <Text style={styles.title}>Create account</Text>
+              <Text style={styles.subtitle}>Join the fleet</Text>
+            </Animated.View>
 
-          <View style={[styles.card, shadows.lg]}>
-            <View style={styles.field}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={[styles.input, errors.email && styles.inputError]}
-                placeholder="you@company.com"
-                placeholderTextColor={colors.runway[400]}
-                value={email}
-                onChangeText={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: "" })); }}
-                autoCapitalize="none" autoCorrect={false} keyboardType="email-address"
-                textContentType="emailAddress" autoComplete="email" returnKeyType="next"
-                editable={!isLoading} accessibilityLabel="Email"
-              />
-              {errors.email && <Text style={styles.fieldError}>{errors.email}</Text>}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.pwRow}>
+            <Animated.View entering={FadeInUp.delay(200).duration(400)} style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email</Text>
                 <TextInput
-                  style={[styles.input, styles.pwInput, errors.password && styles.inputError]}
-                  placeholder="Create a strong password"
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="you@company.com"
                   placeholderTextColor={colors.runway[400]}
-                  value={password}
-                  onChangeText={(v) => { setPassword(v); setErrors((e) => ({ ...e, password: "" })); }}
-                  secureTextEntry={!showPassword}
-                  textContentType="newPassword" autoComplete="new-password" returnKeyType="next"
-                  editable={!isLoading} accessibilityLabel="Password"
+                  value={email}
+                  onChangeText={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: "" })); }}
+                  autoCapitalize="none" autoCorrect={false} keyboardType="email-address"
+                  textContentType="emailAddress" autoComplete="email" returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  editable={!isLoading}
+                  selectionColor={colors.brand[400]}
                 />
-                <TouchableOpacity style={styles.eye} onPress={() => setShowPassword((v) => !v)}>
-                  <Text style={{ fontSize: 20 }}>{showPassword ? "🙈" : "👁️"}</Text>
-                </TouchableOpacity>
+                {errors.email && <Text style={styles.fieldError}>{errors.email}</Text>}
               </View>
-              {errors.password && <Text style={styles.fieldError}>{errors.password}</Text>}
-              {strength !== null && (
-                <View style={styles.strengthRow} accessibilityLabel={`Strength: ${STRENGTH[strength]}`}>
-                  <View style={styles.bars}>
-                    {[0, 1, 2, 3].map((i) => (
-                      <View key={i} style={[styles.bar, { backgroundColor: i <= strength ? STRENGTH_COLORS[strength] : colors.runway[200] }]} />
-                    ))}
-                  </View>
-                  <Text style={[styles.strengthLabel, { color: STRENGTH_COLORS[strength] }]}>{STRENGTH[strength]}</Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    ref={passwordRef}
+                    style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
+                    placeholder="Create a strong password"
+                    placeholderTextColor={colors.runway[400]}
+                    value={password}
+                    onChangeText={(v) => { setPassword(v); setErrors((e) => ({ ...e, password: "" })); }}
+                    secureTextEntry={!showPassword}
+                    textContentType="newPassword" autoComplete="new-password" returnKeyType="next"
+                    onSubmitEditing={() => confirmRef.current?.focus()}
+                    editable={!isLoading}
+                    selectionColor={colors.brand[400]}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={() => setShowPassword((v) => !v)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <Text style={styles.eyeText}>{showPassword ? "Hide" : "Show"}</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
-              <Text style={styles.hint}>Min 8 chars · uppercase · lowercase · digit · special</Text>
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Confirm password</Text>
-              <TextInput
-                style={[styles.input, errors.confirmPassword && styles.inputError]}
-                placeholder="Re-enter your password"
-                placeholderTextColor={colors.runway[400]}
-                value={confirmPassword}
-                onChangeText={(v) => { setConfirmPassword(v); setErrors((e) => ({ ...e, confirmPassword: "" })); }}
-                secureTextEntry={!showPassword}
-                textContentType="newPassword" autoComplete="new-password" returnKeyType="done"
-                onSubmitEditing={handleRegister}
-                editable={!isLoading} accessibilityLabel="Confirm password"
-              />
-              {errors.confirmPassword && <Text style={styles.fieldError}>{errors.confirmPassword}</Text>}
-            </View>
-
-            {serverError && (
-              <View style={styles.errorBox} accessibilityRole="alert">
-                <Text style={styles.errorIcon}>!</Text>
-                <Text style={styles.errorText}>{serverError}</Text>
+                {errors.password && <Text style={styles.fieldError}>{errors.password}</Text>}
+                {strength !== null && (
+                  <View style={styles.strengthRow} accessibilityLabel={`Strength: ${STRENGTH[strength]}`}>
+                    <View style={styles.bars}>
+                      {[0, 1, 2, 3].map((i) => (
+                        <View key={i} style={[styles.bar, { backgroundColor: i <= strength ? STRENGTH_COLORS[strength] : colors.runway[200] }]} />
+                      ))}
+                    </View>
+                    <Text style={[styles.strengthLabel, { color: STRENGTH_COLORS[strength] }]}>{STRENGTH[strength]}</Text>
+                  </View>
+                )}
+                <Text style={styles.hint}>Min 8 chars · uppercase · lowercase · digit · special</Text>
               </View>
-            )}
 
-            <PressableScale style={styles.button} onPress={handleRegister} disabled={isLoading} haptic>
-              {isLoading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Create account</Text>}
-            </PressableScale>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Confirm password</Text>
+                <TextInput
+                  ref={confirmRef}
+                  style={[styles.input, errors.confirmPassword && styles.inputError]}
+                  placeholder="Re-enter your password"
+                  placeholderTextColor={colors.runway[400]}
+                  value={confirmPassword}
+                  onChangeText={(v) => { setConfirmPassword(v); setErrors((e) => ({ ...e, confirmPassword: "" })); }}
+                  secureTextEntry={!showPassword}
+                  textContentType="newPassword" autoComplete="new-password" returnKeyType="done"
+                  onSubmitEditing={handleRegister}
+                  editable={!isLoading}
+                  selectionColor={colors.brand[400]}
+                />
+                {errors.confirmPassword && <Text style={styles.fieldError}>{errors.confirmPassword}</Text>}
+              </View>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account? </Text>
-              <Link href="/(auth)/login" asChild>
-                <TouchableOpacity><Text style={styles.footerLink}>Sign in</Text></TouchableOpacity>
-              </Link>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+              {serverError && (
+                <Animated.View entering={FadeIn.duration(200)} style={styles.errorBox}>
+                  <Text style={styles.errorText}>{serverError}</Text>
+                </Animated.View>
+              )}
+
+              <PressableScale
+                style={[styles.button, isLoading && styles.buttonMuted]}
+                onPress={handleRegister}
+                disabled={isLoading}
+              >
+                {isLoading ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.buttonText}>Create account</Text>}
+              </PressableScale>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Already have an account? </Text>
+                <Link href="/(auth)/login" asChild>
+                  <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                    <Text style={styles.footerLink}>Sign in</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
+
+const INPUT_HEIGHT = 50;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing["2xl"] },
-  top: { alignItems: "center", marginBottom: spacing["2xl"] },
-  pill: {
-    flexDirection: "row", alignItems: "center", gap: spacing.sm,
-    backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.full, marginBottom: spacing.lg,
-  },
-  pillIcon: { fontSize: 18, color: colors.white },
-  pillText: { fontSize: fontSize.lg, fontWeight: "700", color: colors.white, letterSpacing: -0.3 },
-  title: { fontSize: fontSize["4xl"], fontWeight: "700", color: colors.white, letterSpacing: -1 },
-  sub: { fontSize: fontSize.base, color: "rgba(255,255,255,0.6)", marginTop: spacing.xs },
-  card: { backgroundColor: colors.white, borderRadius: borderRadius.xl, padding: spacing.lg },
-  field: { marginBottom: spacing.md },
-  label: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[700], marginBottom: spacing.xs + 2 },
+  topSection: { alignItems: "center", marginBottom: spacing["2xl"] },
+  logo: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing["2xl"] },
+  logoIcon: { fontSize: 22, color: colors.brand[600] },
+  brandName: { fontSize: fontSize.xl, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.3 },
+  title: { fontSize: 32, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5, marginBottom: spacing.xs },
+  subtitle: { fontSize: fontSize.base, color: colors.runway[500], fontWeight: "400" },
+  form: { width: "100%" },
+  inputGroup: { marginBottom: spacing.md },
+  label: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[600], textTransform: "uppercase", letterSpacing: 0.8, marginBottom: spacing.sm },
   input: {
-    backgroundColor: colors.runway[50], borderWidth: 1, borderColor: colors.runway[300],
-    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
-    fontSize: fontSize.base, color: colors.runway[900],
+    height: INPUT_HEIGHT, backgroundColor: colors.runway[50], borderWidth: 1, borderColor: colors.runway[200],
+    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, fontSize: fontSize.base, color: colors.runway[900], fontWeight: "500",
   },
   inputError: { borderColor: colors.red[500] },
-  fieldError: { fontSize: fontSize.xs, color: colors.red[600], marginTop: spacing.xs },
-  pwRow: { position: "relative" },
-  pwInput: { paddingRight: 48 },
-  eye: { position: "absolute", right: spacing.md, top: 0, bottom: 0, justifyContent: "center" },
-  strengthRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 4, marginTop: spacing.sm },
+  fieldError: { fontSize: fontSize.xs, color: colors.red[600], marginTop: spacing.xs + 2 },
+  passwordRow: { position: "relative", justifyContent: "center" },
+  passwordInput: { paddingRight: 60 },
+  eyeBtn: { position: "absolute", right: spacing.md },
+  eyeText: { fontSize: fontSize.xs, fontWeight: "600", color: colors.brand[600], textTransform: "uppercase", letterSpacing: 0.5 },
+  strengthRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 4, marginTop: spacing.sm + 2 },
   bars: { flexDirection: "row", gap: spacing.xs, flex: 1 },
   bar: { flex: 1, height: 4, borderRadius: 2 },
   strengthLabel: { fontSize: fontSize.xs, fontWeight: "600", minWidth: 44, textAlign: "right" },
-  hint: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: spacing.xs },
+  hint: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: spacing.xs + 2 },
   errorBox: {
-    flexDirection: "row", alignItems: "center", gap: spacing.sm,
     backgroundColor: colors.red[50], borderWidth: 1, borderColor: colors.red[100],
-    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4,
+    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
     marginBottom: spacing.md,
   },
-  errorIcon: {
-    width: 22, height: 22, borderRadius: 11, backgroundColor: colors.red[500],
-    color: colors.white, textAlign: "center", lineHeight: 22, fontSize: fontSize.xs, fontWeight: "700", overflow: "hidden",
-  },
-  errorText: { flex: 1, fontSize: fontSize.sm, color: colors.red[700] },
-  button: { backgroundColor: colors.brand[600], borderRadius: borderRadius.md, paddingVertical: spacing.sm + 6, alignItems: "center" },
-  buttonText: { color: colors.white, fontSize: fontSize.base, fontWeight: "700", letterSpacing: 0.3 },
-  footer: { flexDirection: "row", justifyContent: "center", marginTop: spacing.md },
-  footerText: { fontSize: fontSize.sm, color: colors.runway[500] },
-  footerLink: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "700" },
+  errorText: { fontSize: fontSize.sm, color: colors.red[700], fontWeight: "500" },
+  button: { height: INPUT_HEIGHT + 2, backgroundColor: colors.runway[900], borderRadius: borderRadius.md, alignItems: "center", justifyContent: "center" },
+  buttonMuted: { opacity: 0.5 },
+  buttonText: { color: colors.white, fontSize: fontSize.base, fontWeight: "600", letterSpacing: 0.3 },
+  footer: { flexDirection: "row", justifyContent: "center", marginTop: spacing.lg + spacing.sm },
+  footerText: { fontSize: fontSize.sm, color: colors.runway[500], fontWeight: "400" },
+  footerLink: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "600" },
 });

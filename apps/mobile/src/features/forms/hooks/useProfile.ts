@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "../../../core/network";
+
+import { supabase } from "@core/network";
 import { useAuthStore } from "../../auth/stores/authStore";
 
 export interface Profile {
@@ -26,26 +27,26 @@ export function useProfile() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: [...PROFILE_KEY, userId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const response = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
 
-      if (error) throw new Error(error.message);
-      const row = data as ProfileRow;
+      if (response.error) throw new Error(response.error.message);
+      const row = response.data as ProfileRow;
+      if (!row) throw new Error("Profile not found");
       return {
         id: row.id,
         fullName: row.full_name,
         role: row.role,
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at),
-      } as Profile;
+      } satisfies Profile;
     },
     enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
   });
-
-  const client = supabase;
 
   return {
     profile: data ?? null,

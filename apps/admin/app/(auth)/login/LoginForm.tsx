@@ -1,9 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
+
 import { signIn, type SignInState } from "@/features/auth/actions";
-import { useRouter } from "next/navigation";
 
 function MailIcon() {
   return (
@@ -101,7 +102,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+    <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-5" noValidate>
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-runway-700 mb-1.5">
           Email

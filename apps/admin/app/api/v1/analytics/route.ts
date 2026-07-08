@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export function GET() {
   return NextResponse.json(
     { message: "Analytics API — implemented in Tasks 24–25." },
     { status: 200 },

@@ -3,8 +3,8 @@
  * loading state, and any auth errors.
  */
 
-import { create } from "zustand";
 import type { Session, AppError } from "@pilotforms/shared";
+import { create } from "zustand";
 
 export interface AuthUser {
   id: string;
@@ -17,11 +17,13 @@ interface AuthState {
   user: AuthUser | null;
   isLoading: boolean;
   error: AppError | null;
+  mfaPending: boolean;
 
   setSession(session: Session | null): void;
   setUser(user: AuthUser | null): void;
   setLoading(isLoading: boolean): void;
   setError(error: AppError | null): void;
+  setMfaPending(pending: boolean): void;
   reset(): void;
 }
 
@@ -30,6 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
   error: null,
+  mfaPending: false,
 
   setSession(session) {
     set({ session });
@@ -47,7 +50,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ error });
   },
 
+  setMfaPending(pending) {
+    set({ mfaPending: pending });
+  },
+
   reset() {
-    set({ session: null, user: null, isLoading: false, error: null });
+    set({ session: null, user: null, isLoading: false, error: null, mfaPending: false });
   },
 }));
