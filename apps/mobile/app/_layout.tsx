@@ -54,12 +54,18 @@ function AuthSessionRestorer() {
     async function restoreSession() {
       setLoading(true);
       try {
-        // Add timeout to prevent infinite loading
-        const sessionPromise = supabase.auth.getSession();
-        const timeout = new Promise<{ data: { session: null } }>((resolve) => 
-          setTimeout(() => resolve({ data: { session: null } }), 5000)
-        );
-        const { data: { session: currentSession } } = await Promise.race([sessionPromise, timeout]);
+        // Quick network check — if no internet, go straight to login
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        let currentSession = null;
+        try {
+          const result = await supabase.auth.getSession();
+          currentSession = result.data?.session;
+        } catch {
+          // Network failed — skip
+        }
+        clearTimeout(timeoutId);
 
         if (currentSession && currentSession.user && mounted) {
           const su = currentSession.user;
@@ -86,7 +92,11 @@ function AuthSessionRestorer() {
     }
 
     restoreSession();
-    return () => { mounted = false; };
+    
+    // Hard failsafe — never stay loading more than 3 seconds
+    const failsafe = setTimeout(() => { if (mounted) setLoading(false); }, 3000);
+    
+    return () => { mounted = false; clearTimeout(failsafe); };
   }, []);
 
   return null;

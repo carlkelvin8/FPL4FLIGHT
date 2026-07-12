@@ -1,0 +1,106 @@
+import { useState, useCallback } from "react";
+import { View, TextInput, StyleSheet, Keyboard } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { PressableScale } from "@shared/components/PressableScale";
+
+interface ChatInputProps {
+  onSend: (content: string) => void;
+  sending: boolean;
+  disabled?: boolean;
+}
+
+export function ChatInput({ onSend, sending, disabled }: ChatInputProps) {
+  const [text, setText] = useState("");
+
+  const handleSend = useCallback(() => {
+    const trimmed = text.trim();
+    if (!trimmed || sending || disabled) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    onSend(trimmed);
+    setText("");
+    Keyboard.dismiss();
+  }, [text, sending, disabled, onSend]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.inputWrapper}>
+        <TextInput
+          style={styles.input}
+          placeholder="Type a message..."
+          placeholderTextColor={colors.runway[400]}
+          value={text}
+          onChangeText={setText}
+          multiline
+          maxLength={2000}
+          editable={!sending && !disabled}
+          returnKeyType="send"
+          blurOnSubmit={false}
+          onSubmitEditing={handleSend}
+        />
+      </View>
+
+      <PressableScale
+        onPress={handleSend}
+        scaleIn={0.9}
+        haptic
+        style={[
+          styles.sendBtn,
+          (!text.trim() || sending || disabled) && styles.sendBtnDisabled,
+        ]}
+        disabled={!text.trim() || sending || disabled}
+      >
+        <Ionicons
+          name={sending ? "hourglass-outline" : "send"}
+          size={18}
+          color={!text.trim() || sending || disabled ? colors.runway[400] : colors.white}
+        />
+      </PressableScale>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.runway[200],
+    gap: spacing.sm,
+  },
+  inputWrapper: {
+    flex: 1,
+    backgroundColor: colors.runway[50],
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.runway[200],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minHeight: 40,
+    maxHeight: 100,
+    justifyContent: "center",
+  },
+  input: {
+    fontSize: fontSize.base,
+    color: colors.runway[800],
+    padding: 0,
+    lineHeight: 20,
+  },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.brand[600],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendBtnDisabled: {
+    backgroundColor: colors.runway[100],
+  },
+});
