@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Clipboard from "expo-clipboard";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
 import { aircraftRepository, type AircraftData, type CreateAircraftDto } from "@features/aircraft/repositories/AircraftRepository";
@@ -181,25 +182,61 @@ export default function AircraftScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: insets.bottom + 80 }}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <PressableScale
-              style={styles.aircraftCard}
-              onPress={() => handleEdit(item)}
-              onLongPress={() => handleDelete(item.id)}
-              haptic
-            >
-              <View style={styles.cardIcon}>
-                <Ionicons name="airplane" size={20} color={colors.brand[600]} />
-              </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardId}>{item.aircraftId || "No ID"}</Text>
-                <Text style={styles.cardType}>
-                  {item.typeOfAircraft || "Unknown type"} · WTC: {item.wakeTurbulenceCategory}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.runway[300]} />
-            </PressableScale>
-          )}
+          renderItem={({ item }) => {
+            const typeStr = (item.typeOfAircraft || "").toUpperCase();
+
+            return (
+              <PressableScale
+                style={styles.aircraftCard}
+                onPress={() => handleEdit(item)}
+                onLongPress={() => handleDelete(item.id)}
+                haptic
+              >
+                {/* Top row: icon + ID + WTC badge */}
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardIcon}>
+                    <Ionicons name="airplane" size={22} color={colors.brand[600]} />
+                  </View>
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardIdRow}>
+                      <Text style={styles.cardId}>{item.aircraftId || "No ID"}</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          Clipboard.setStringAsync(item.aircraftId || "");
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          Alert.alert("Copied", `${item.aircraftId} copied to clipboard`);
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={styles.copyBtn}
+                      >
+                        <Ionicons name="copy-outline" size={14} color={colors.runway[400]} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.cardType}>{item.typeOfAircraft || "Unknown type"}</Text>
+                  </View>
+                  <View style={styles.wtcBadge}>
+                    <Text style={styles.wtcText}>{item.wakeTurbulenceCategory}</Text>
+                  </View>
+                </View>
+
+                {/* Bottom row: stats */}
+                <View style={styles.cardStats}>
+                  <View style={styles.statItem}>
+                    <Ionicons name="speedometer-outline" size={14} color={colors.runway[400]} />
+                    <Text style={styles.statText}>WTC: {item.wakeTurbulenceCategory === "L" ? "Light" : item.wakeTurbulenceCategory === "M" ? "Medium" : "Heavy"}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Ionicons name="hardware-chip-outline" size={14} color={colors.runway[400]} />
+                    <Text style={styles.statText}>EQP: {item.equipment || "—"}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Ionicons name="time-outline" size={14} color={colors.runway[400]} />
+                    <Text style={styles.statText}>Hrs: —</Text>
+                  </View>
+                </View>
+              </PressableScale>
+            );
+          }}
         />
       )}
 
@@ -537,22 +574,24 @@ const styles = StyleSheet.create({
   },
   // Aircraft card
   aircraftCard: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginTop: spacing.sm,
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   cardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: colors.brand[50],
     alignItems: "center",
     justifyContent: "center",
@@ -562,14 +601,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardId: {
-    fontSize: fontSize.base,
+    fontSize: fontSize.lg,
     fontWeight: "700",
     color: colors.runway[900],
+    letterSpacing: 0.5,
+  },
+  cardIdRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  copyBtn: {
+    padding: 4,
+    borderRadius: 4,
+    backgroundColor: colors.runway[100],
   },
   cardType: {
     fontSize: fontSize.sm,
     color: colors.runway[500],
     marginTop: 2,
+  },
+  wtcBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.runway[900],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  wtcText: {
+    fontSize: fontSize.base,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  cardStats: {
+    flexDirection: "row",
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.runway[100],
+    gap: spacing.md,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statText: {
+    fontSize: fontSize.xs,
+    color: colors.runway[500],
+    fontWeight: "500",
   },
   // Success overlay
   successOverlay: {

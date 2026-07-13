@@ -93,6 +93,17 @@ export default function AppLayout() {
       <Tabs.Screen name="templates" options={{ href: null }} />
       <Tabs.Screen name="terms" options={{ href: null }} />
       <Tabs.Screen name="privacy" options={{ href: null }} />
+      <Tabs.Screen name="weather" options={{ href: null }} />
+      <Tabs.Screen name="logbook" options={{ href: null }} />
+      <Tabs.Screen name="e6b" options={{ href: null }} />
+      <Tabs.Screen name="weight-balance" options={{ href: null }} />
+      <Tabs.Screen name="notams" options={{ href: null }} />
+      <Tabs.Screen name="navlog" options={{ href: null }} />
+      <Tabs.Screen name="flight-planning" options={{ href: null }} />
+      <Tabs.Screen name="aip" options={{ href: null }} />
+      <Tabs.Screen name="duty-tracker" options={{ href: null }} />
+      <Tabs.Screen name="live-track" options={{ href: null }} />
+      <Tabs.Screen name="form-builder" options={{ href: null }} />
       <Tabs.Screen name="licenses" options={{ href: null }} />
       <Tabs.Screen name="billing" options={{ href: null }} />
       <Tabs.Screen name="team" options={{ href: null }} />

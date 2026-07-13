@@ -26,7 +26,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     package: "io.pilotforms.app",
     versionCode: 1,
-    googleServicesFile: "./google-services.json",
   },
   web: {
     favicon: "./assets/favicon.png",
@@ -34,6 +33,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     "expo-router",
     "expo-secure-store",
+    "expo-audio",
+    "expo-mail-composer",
     [
       "expo-sqlite",
       {

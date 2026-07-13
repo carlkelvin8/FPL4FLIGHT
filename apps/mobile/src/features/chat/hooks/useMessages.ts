@@ -3,9 +3,9 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { chatRepository } from "../repositories/ChatRepository";
 import type { ChatMessage } from "../types";
 
-const MESSAGES_KEY = ["community_messages"];
+export function useMessages(channelId: string) {
+  const queryKey = ["channel_messages", channelId];
 
-export function useMessages() {
   const {
     data,
     isLoading,
@@ -15,9 +15,9 @@ export function useMessages() {
     isFetchingNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: MESSAGES_KEY,
+    queryKey,
     queryFn: async ({ pageParam }) => {
-      const result = await chatRepository.fetchMessages(pageParam);
+      const result = await chatRepository.fetchMessages(channelId, pageParam);
       if (!result.success) throw new Error(result.error.message);
       return result.data;
     },
@@ -26,10 +26,14 @@ export function useMessages() {
       if (lastPage.length < 50) return undefined;
       return lastPage[0]?.createdAt.toISOString();
     },
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 5,
+    refetchInterval: 1000 * 10, // Poll every 10s as fallback for realtime
+    enabled: !!channelId,
   });
 
-  const messages: ChatMessage[] = data?.pages?.flat().reverse() ?? [];
+  // Messages come back from repository in chronological order (oldest first).
+  // Pages are loaded newest-first, so flatten all pages in order: oldest → newest.
+  const messages: ChatMessage[] = data?.pages?.flat() ?? [];
 
   return {
     messages,
@@ -39,6 +43,6 @@ export function useMessages() {
     hasNextPage: hasNextPage ?? false,
     isFetchingNextPage,
     refetch,
-    queryKey: MESSAGES_KEY,
+    queryKey,
   };
 }

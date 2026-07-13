@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { View, TextInput, StyleSheet, Keyboard } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -8,12 +8,33 @@ import { PressableScale } from "@shared/components/PressableScale";
 
 interface ChatInputProps {
   onSend: (content: string) => void;
+  onTyping?: () => void;
+  onStopTyping?: () => void;
+  onTextChange?: (text: string) => void;
   sending: boolean;
   disabled?: boolean;
+  placeholder?: string;
 }
 
-export function ChatInput({ onSend, sending, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onTyping, onStopTyping, onTextChange, sending, disabled, placeholder }: ChatInputProps) {
   const [text, setText] = useState("");
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleChangeText = useCallback(
+    (value: string) => {
+      setText(value);
+      onTextChange?.(value);
+
+      if (value.trim().length > 0) {
+        onTyping?.();
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => { onStopTyping?.(); }, 3000);
+      } else {
+        onStopTyping?.();
+      }
+    },
+    [onTyping, onStopTyping, onTextChange],
+  );
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
@@ -22,18 +43,22 @@ export function ChatInput({ onSend, sending, disabled }: ChatInputProps) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     onSend(trimmed);
     setText("");
+    onStopTyping?.();
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
     Keyboard.dismiss();
-  }, [text, sending, disabled, onSend]);
+  }, [text, sending, disabled, onSend, onStopTyping]);
 
   return (
     <View style={styles.container}>
       <View style={styles.inputWrapper}>
         <TextInput
           style={styles.input}
-          placeholder="Type a message..."
+          placeholder={placeholder ?? "Message #community..."}
           placeholderTextColor={colors.runway[400]}
           value={text}
-          onChangeText={setText}
+          onChangeText={handleChangeText}
           multiline
           maxLength={2000}
           editable={!sending && !disabled}

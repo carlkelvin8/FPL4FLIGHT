@@ -54,18 +54,15 @@ function AuthSessionRestorer() {
     async function restoreSession() {
       setLoading(true);
       try {
-        // Quick network check — if no internet, go straight to login
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        
         let currentSession = null;
         try {
-          const result = await supabase.auth.getSession();
-          currentSession = result.data?.session;
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000));
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          currentSession = result?.data?.session ?? null;
         } catch {
-          // Network failed — skip
+          // Network failed or timeout — skip
         }
-        clearTimeout(timeoutId);
 
         if (currentSession && currentSession.user && mounted) {
           const su = currentSession.user;
@@ -78,7 +75,6 @@ function AuthSessionRestorer() {
           });
           setUser({ id: su.id, email: su.email ?? "", role: "pilot" });
         } else {
-          // No valid session — clear any stale local tokens
           await secureStorage.delete(SESSION_KEY).catch(() => {});
           await secureStorage.delete(AUTH_TOKEN_KEY).catch(() => {});
           await secureStorage.delete(REFRESH_TOKEN_KEY).catch(() => {});

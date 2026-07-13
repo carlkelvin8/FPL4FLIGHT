@@ -1,0 +1,132 @@
+import { useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+
+interface Waypoint {
+  id: string;
+  name: string;
+  course: string;
+  distance: string;
+  altitude: string;
+  groundSpeed: string;
+  ete: string;
+  fuel: string;
+  remarks: string;
+}
+
+export default function NavLogScreen() {
+  const insets = useSafeAreaInsets();
+  const [flightInfo, setFlightInfo] = useState({ departure: "", destination: "", aircraft: "", date: "", cruiseAlt: "", cruiseTAS: "" });
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([
+    { id: "1", name: "", course: "", distance: "", altitude: "", groundSpeed: "", ete: "", fuel: "", remarks: "" },
+  ]);
+
+  function addWaypoint() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setWaypoints((prev) => [...prev, { id: Date.now().toString(), name: "", course: "", distance: "", altitude: "", groundSpeed: "", ete: "", fuel: "", remarks: "" }]);
+  }
+
+  function removeWaypoint(id: string) {
+    if (waypoints.length <= 1) return;
+    setWaypoints((prev) => prev.filter((w) => w.id !== id));
+  }
+
+  function updateWaypoint(id: string, field: keyof Waypoint, value: string) {
+    setWaypoints((prev) => prev.map((w) => w.id === id ? { ...w, [field]: value } : w));
+  }
+
+  // Totals
+  const totalDist = waypoints.reduce((s, w) => s + (parseFloat(w.distance) || 0), 0);
+  const totalFuel = waypoints.reduce((s, w) => s + (parseFloat(w.fuel) || 0), 0);
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Navigation Log</Text>
+        <Text style={styles.subtitle}>Waypoint-by-waypoint planning</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
+        {/* Flight Info */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>FLIGHT INFO</Text>
+          <View style={styles.row}>
+            <View style={styles.flex1}><Text style={styles.fieldLabel}>From</Text><TextInput style={styles.fieldInput} value={flightInfo.departure} onChangeText={(v) => setFlightInfo((p) => ({ ...p, departure: v }))} placeholder="RPLL" autoCapitalize="characters" placeholderTextColor={colors.runway[300]} /></View>
+            <View style={styles.flex1}><Text style={styles.fieldLabel}>To</Text><TextInput style={styles.fieldInput} value={flightInfo.destination} onChangeText={(v) => setFlightInfo((p) => ({ ...p, destination: v }))} placeholder="RPVM" autoCapitalize="characters" placeholderTextColor={colors.runway[300]} /></View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.flex1}><Text style={styles.fieldLabel}>Aircraft</Text><TextInput style={styles.fieldInput} value={flightInfo.aircraft} onChangeText={(v) => setFlightInfo((p) => ({ ...p, aircraft: v }))} placeholder="C172" placeholderTextColor={colors.runway[300]} /></View>
+            <View style={styles.flex1}><Text style={styles.fieldLabel}>Cruise Alt</Text><TextInput style={styles.fieldInput} value={flightInfo.cruiseAlt} onChangeText={(v) => setFlightInfo((p) => ({ ...p, cruiseAlt: v }))} placeholder="5500" keyboardType="numeric" placeholderTextColor={colors.runway[300]} /></View>
+            <View style={styles.flex1}><Text style={styles.fieldLabel}>TAS</Text><TextInput style={styles.fieldInput} value={flightInfo.cruiseTAS} onChangeText={(v) => setFlightInfo((p) => ({ ...p, cruiseTAS: v }))} placeholder="110" keyboardType="numeric" placeholderTextColor={colors.runway[300]} /></View>
+          </View>
+        </View>
+
+        {/* Waypoints Table */}
+        <View style={styles.card}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardLabel}>WAYPOINTS</Text>
+            <TouchableOpacity onPress={addWaypoint}><Ionicons name="add-circle" size={24} color={colors.brand[600]} /></TouchableOpacity>
+          </View>
+
+          {/* Column headers */}
+          <View style={styles.tableHeader}>
+            <Text style={[styles.colH, { flex: 1.2 }]}>Fix/WPT</Text>
+            <Text style={[styles.colH, { flex: 0.7 }]}>CRS°</Text>
+            <Text style={[styles.colH, { flex: 0.7 }]}>Dist</Text>
+            <Text style={[styles.colH, { flex: 0.7 }]}>Alt</Text>
+            <Text style={[styles.colH, { flex: 0.7 }]}>GS</Text>
+            <Text style={[styles.colH, { flex: 0.7 }]}>ETE</Text>
+            <Text style={[styles.colH, { flex: 0.7 }]}>Fuel</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          {waypoints.map((wp, idx) => (
+            <View key={wp.id} style={styles.tableRow}>
+              <TextInput style={[styles.cell, { flex: 1.2 }]} value={wp.name} onChangeText={(v) => updateWaypoint(wp.id, "name", v)} placeholder={idx === 0 ? "DEP" : `WPT${idx}`} placeholderTextColor={colors.runway[300]} />
+              <TextInput style={[styles.cell, { flex: 0.7 }]} value={wp.course} onChangeText={(v) => updateWaypoint(wp.id, "course", v)} placeholder="—" keyboardType="numeric" placeholderTextColor={colors.runway[300]} />
+              <TextInput style={[styles.cell, { flex: 0.7 }]} value={wp.distance} onChangeText={(v) => updateWaypoint(wp.id, "distance", v)} placeholder="—" keyboardType="decimal-pad" placeholderTextColor={colors.runway[300]} />
+              <TextInput style={[styles.cell, { flex: 0.7 }]} value={wp.altitude} onChangeText={(v) => updateWaypoint(wp.id, "altitude", v)} placeholder="—" keyboardType="numeric" placeholderTextColor={colors.runway[300]} />
+              <TextInput style={[styles.cell, { flex: 0.7 }]} value={wp.groundSpeed} onChangeText={(v) => updateWaypoint(wp.id, "groundSpeed", v)} placeholder="—" keyboardType="numeric" placeholderTextColor={colors.runway[300]} />
+              <TextInput style={[styles.cell, { flex: 0.7 }]} value={wp.ete} onChangeText={(v) => updateWaypoint(wp.id, "ete", v)} placeholder="—" placeholderTextColor={colors.runway[300]} />
+              <TextInput style={[styles.cell, { flex: 0.7 }]} value={wp.fuel} onChangeText={(v) => updateWaypoint(wp.id, "fuel", v)} placeholder="—" keyboardType="decimal-pad" placeholderTextColor={colors.runway[300]} />
+              <TouchableOpacity onPress={() => removeWaypoint(wp.id)} style={{ width: 24, alignItems: "center" }}>
+                <Ionicons name="close-circle" size={16} color={colors.red[500]} />
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {/* Totals */}
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalLabel}>TOTALS</Text>
+            <Text style={styles.totalValue}>Dist: {totalDist.toFixed(0)} NM</Text>
+            <Text style={styles.totalValue}>Fuel: {totalFuel.toFixed(1)} L</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.runway[50] },
+  header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  title: { fontSize: 24, fontWeight: "700", color: colors.runway[900] },
+  subtitle: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
+  card: { backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.md },
+  cardLabel: { fontSize: 10, fontWeight: "700", color: colors.brand[600], letterSpacing: 1, marginBottom: spacing.sm },
+  cardHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
+  row: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.sm },
+  flex1: { flex: 1 },
+  fieldLabel: { fontSize: 9, fontWeight: "600", color: colors.runway[500], marginBottom: 4 },
+  fieldInput: { backgroundColor: colors.runway[50], borderWidth: 1, borderColor: colors.runway[200], borderRadius: 8, paddingHorizontal: 8, paddingVertical: 8, fontSize: fontSize.sm, color: colors.runway[900] },
+  tableHeader: { flexDirection: "row", alignItems: "center", paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  colH: { fontSize: 8, fontWeight: "700", color: colors.runway[500], textTransform: "uppercase" },
+  tableRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.runway[50] },
+  cell: { fontSize: fontSize.xs, color: colors.runway[900], paddingHorizontal: 2, paddingVertical: 4, textAlign: "center" },
+  totalsRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.runway[200] },
+  totalLabel: { fontSize: 9, fontWeight: "700", color: colors.runway[500] },
+  totalValue: { fontSize: fontSize.xs, fontWeight: "600", color: colors.brand[600] },
+});

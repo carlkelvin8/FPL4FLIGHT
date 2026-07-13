@@ -44,6 +44,20 @@ const APP_INFO_LINKS = [
   { icon: "information-circle-outline" as const, label: "Open Source Licenses", route: "/(app)/licenses" },
 ] as const;
 
+const PILOT_TOOLS = [
+  { icon: "book-outline" as const, label: "Pilot Logbook", desc: "Log your flight hours", route: "/(app)/logbook" },
+  { icon: "calculator-outline" as const, label: "E6B Calculator", desc: "TAS, wind, fuel, distance", route: "/(app)/e6b" },
+  { icon: "scale-outline" as const, label: "Weight & Balance", desc: "CG calculator", route: "/(app)/weight-balance" },
+  { icon: "warning-outline" as const, label: "NOTAM Viewer", desc: "Notices to Airmen", route: "/(app)/notams" },
+  { icon: "map-outline" as const, label: "Navigation Log", desc: "Waypoint planning", route: "/(app)/navlog" },
+  { icon: "navigate-outline" as const, label: "Flight Planning", desc: "VFR & IFR routes", route: "/(app)/flight-planning" },
+  { icon: "library-outline" as const, label: "AIP Reference", desc: "Aeronautical publications", route: "/(app)/aip" },
+  { icon: "cloud-outline" as const, label: "Weather & METAR", desc: "Aviation weather briefing", route: "/(app)/weather" },
+  { icon: "time-outline" as const, label: "Duty & FRMS Tracker", desc: "Fatigue risk management", route: "/(app)/duty-tracker" },
+  { icon: "locate-outline" as const, label: "Live Flight Tracking", desc: "GPS track with speed & altitude", route: "/(app)/live-track" },
+  { icon: "construct-outline" as const, label: "Form Builder", desc: "Create custom form templates", route: "/(app)/form-builder" },
+] as const;
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -236,6 +250,26 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.runway[400]} />
             </PressableScale>
             {i < ACCOUNT_LINKS.length - 1 && <View style={styles.divider} />}
+          </View>
+        ))}
+      </Card>
+
+      {/* Pilot Tools */}
+      <Text style={styles.sectionLabel}>Pilot Tools</Text>
+      <Card variant="default" style={styles.card}>
+        {PILOT_TOOLS.map((tool, i) => (
+          <View key={tool.label}>
+            <PressableScale style={styles.linkRow} haptic onPress={() => router.push(tool.route as any)}>
+              <View style={[styles.iconCircle, { backgroundColor: colors.brand[50] }]}>
+                <Ionicons name={tool.icon} size={16} color={colors.brand[600]} />
+              </View>
+              <View style={styles.linkContent}>
+                <Text style={styles.linkLabel}>{tool.label}</Text>
+                <Text style={styles.linkDesc}>{tool.desc}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={colors.runway[400]} />
+            </PressableScale>
+            {i < PILOT_TOOLS.length - 1 && <View style={styles.divider} />}
           </View>
         ))}
       </Card>

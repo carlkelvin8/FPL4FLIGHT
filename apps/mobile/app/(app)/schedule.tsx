@@ -381,7 +381,7 @@ function FlightForm({ onSave, onCancel }: { onSave: (data: FlightFormData) => vo
             <View style={{ flex: 1 }}>
               <FormInput label="Airport Code" value={form.depCode} onChangeText={(v) => update("depCode", v)} placeholder="MNL" autoCapitalize="characters" icon="location-outline" />
             </View>
-            <View style={{ flex: 0.5 }}>
+            <View style={{ flex: 0.7 }}>
               <View style={formStyles.inputGroup}>
                 <Text style={formStyles.inputLabel}>Country</Text>
                 <TouchableOpacity style={formStyles.pickerBtn} onPress={() => { setCountryPickerField("depCountry"); setCountrySearch(""); setShowCountryPicker(true); }}>
@@ -412,7 +412,7 @@ function FlightForm({ onSave, onCancel }: { onSave: (data: FlightFormData) => vo
             <View style={{ flex: 1 }}>
               <FormInput label="Airport Code" value={form.arrCode} onChangeText={(v) => update("arrCode", v)} placeholder="NRT" autoCapitalize="characters" icon="location-outline" />
             </View>
-            <View style={{ flex: 0.5 }}>
+            <View style={{ flex: 0.7 }}>
               <View style={formStyles.inputGroup}>
                 <Text style={formStyles.inputLabel}>Country</Text>
                 <TouchableOpacity style={formStyles.pickerBtn} onPress={() => { setCountryPickerField("arrCountry"); setCountrySearch(""); setShowCountryPicker(true); }}>
@@ -644,16 +644,16 @@ const formStyles = StyleSheet.create({
   headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.3 },
   saveBtn: { backgroundColor: colors.brand[600], paddingHorizontal: 20, paddingVertical: 9, borderRadius: 20, shadowColor: colors.brand[600], shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 3 },
   saveBtnText: { fontSize: fontSize.sm, fontWeight: "700", color: colors.white },
-  card: { backgroundColor: colors.white, marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: 16, padding: spacing.lg, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  cardLabel: { fontSize: 11, fontWeight: "800", color: colors.brand[600], letterSpacing: 1.2, marginBottom: spacing.lg },
-  inputGroup: { marginBottom: spacing.md },
-  inputLabel: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[600], marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.3 },
-  inputWrapper: { flexDirection: "row", alignItems: "center", backgroundColor: colors.runway[50], borderWidth: 1.5, borderColor: colors.runway[200], borderRadius: 12, paddingHorizontal: spacing.md, gap: spacing.sm },
-  textInput: { flex: 1, fontSize: fontSize.base, color: colors.runway[900], paddingVertical: 14 },
+  card: { backgroundColor: colors.white, marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: 16, padding: spacing.md, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  cardLabel: { fontSize: 11, fontWeight: "800", color: colors.brand[600], letterSpacing: 1.2, marginBottom: spacing.md },
+  inputGroup: { marginBottom: spacing.sm },
+  inputLabel: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[600], marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 },
+  inputWrapper: { flexDirection: "row", alignItems: "center", backgroundColor: colors.runway[50], borderWidth: 1.5, borderColor: colors.runway[200], borderRadius: 12, paddingHorizontal: spacing.sm, gap: spacing.xs },
+  textInput: { flex: 1, fontSize: fontSize.sm, color: colors.runway[900], paddingVertical: 12 },
   row: { flexDirection: "row", gap: spacing.sm },
-  pickerBtn: { flexDirection: "row", alignItems: "center", backgroundColor: colors.runway[50], borderWidth: 1.5, borderColor: colors.runway[200], borderRadius: 12, paddingHorizontal: spacing.md, paddingVertical: 14, gap: spacing.sm },
-  pickerValue: { flex: 1, fontSize: fontSize.base, fontWeight: "600", color: colors.runway[900] },
-  pickerPlaceholder: { flex: 1, fontSize: fontSize.base, color: colors.runway[300] },
+  pickerBtn: { flexDirection: "row", alignItems: "center", backgroundColor: colors.runway[50], borderWidth: 1.5, borderColor: colors.runway[200], borderRadius: 12, paddingHorizontal: spacing.sm, paddingVertical: 14, gap: spacing.xs, minHeight: 50 },
+  pickerValue: { flex: 1, fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[900] },
+  pickerPlaceholder: { flex: 1, fontSize: fontSize.sm, color: colors.runway[300] },
   // Country picker
   countryModal: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, maxHeight: "70%", paddingBottom: spacing.xl },
   countryModalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.runway[300], alignSelf: "center", marginBottom: spacing.md },

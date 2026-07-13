@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+  override componentDidCatch(error: Error, info: React.ErrorInfo): void {
     // Error reporting (e.g. Sentry) will be wired in Task 28.
     console.error("[ErrorBoundary] Caught error:", error, info.componentStack);
   }
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: null });
   };
 
-  render(): React.ReactNode {
+  override render(): React.ReactNode {
     const { hasError, error } = this.state;
     const { children, fallback } = this.props;
 

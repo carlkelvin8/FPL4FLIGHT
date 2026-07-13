@@ -4,8 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 
-import type { ChatMessage } from "../types";
+import type { ChatMessage, TypingUser } from "../types";
 import { MessageBubble } from "./MessageBubble";
+import { TypingIndicator } from "./TypingIndicator";
+
+/** Time threshold for grouping consecutive messages from the same user (5 min) */
+const GROUP_THRESHOLD_MS = 5 * 60 * 1000;
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -15,9 +19,16 @@ interface MessageListProps {
   flatListRef: React.RefObject<FlatList>;
   newMessageCount: number;
   isAtBottom: boolean;
+  typingUsers: TypingUser[];
   scrollToBottom: () => void;
   onEndReached: () => void;
+  onScroll?: (event: any) => void;
   onDelete?: (id: string) => void;
+  onReact?: (messageId: string) => void;
+  onReply?: (message: ChatMessage) => void;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
+  onPin?: (messageId: string) => void;
+  onEdit?: (message: ChatMessage) => void;
 }
 
 export function MessageList({
@@ -28,32 +39,46 @@ export function MessageList({
   flatListRef,
   newMessageCount,
   isAtBottom,
+  typingUsers,
   scrollToBottom,
   onEndReached,
+  onScroll,
   onDelete,
+  onReact,
+  onReply,
+  onToggleReaction,
+  onPin,
+  onEdit,
 }: MessageListProps) {
-  const showAvatar = useCallback(
+  const shouldShowHeader = useCallback(
     (index: number) => {
       if (index === 0) return true;
       const current = messages[index];
       const prev = messages[index - 1];
       if (!current || !prev) return true;
-      return current.userId !== prev.userId;
+      if (current.userId !== prev.userId) return true;
+      const gap = current.createdAt.getTime() - prev.createdAt.getTime();
+      return gap > GROUP_THRESHOLD_MS;
     },
     [messages],
   );
 
   const renderItem = useCallback(
-    ({ item, index }: { item: ChatMessage; index: number }) => {
-      const props: any = {
-        message: item,
-        isOwn: item.userId === currentUserId,
-        showAvatar: showAvatar(index),
-      };
-      if (onDelete) props.onDelete = onDelete;
-      return <MessageBubble {...props} />;
-    },
-    [currentUserId, showAvatar, onDelete],
+    ({ item, index }: { item: ChatMessage; index: number }) => (
+      <MessageBubble
+        message={item}
+        isOwn={item.userId === currentUserId}
+        showHeader={shouldShowHeader(index)}
+        currentUserId={currentUserId}
+        onDelete={onDelete}
+        onReact={onReact}
+        onReply={onReply}
+        onToggleReaction={onToggleReaction}
+        onPin={onPin}
+        onEdit={onEdit}
+      />
+    ),
+    [currentUserId, shouldShowHeader, onDelete, onReact, onReply, onToggleReaction, onPin, onEdit],
   );
 
   const keyExtractor = useCallback((item: ChatMessage) => item.id, []);
@@ -100,7 +125,8 @@ export function MessageList({
         keyboardShouldPersistTaps="handled"
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
-        onScroll={undefined}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         ListFooterComponent={ListFooter}
         ListEmptyComponent={ListEmpty}
         maintainVisibleContentPosition={{
@@ -108,6 +134,10 @@ export function MessageList({
         }}
       />
 
+      {/* Typing indicator */}
+      <TypingIndicator typingUsers={typingUsers} />
+
+      {/* New messages badge */}
       {!isAtBottom && newMessageCount > 0 && (
         <TouchableOpacity style={styles.newMessagesBtn} onPress={scrollToBottom} activeOpacity={0.8}>
           <Ionicons name="arrow-down" size={14} color={colors.white} />
@@ -126,7 +156,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingTop: spacing.sm,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.sm,
     flexGrow: 1,
   },
   footer: {
@@ -178,7 +208,7 @@ const styles = StyleSheet.create({
   },
   newMessagesBtn: {
     position: "absolute",
-    bottom: spacing.md,
+    bottom: spacing.xl,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",

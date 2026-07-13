@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,20 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Alert,
+  Switch,
 } from "react-native";
 import { Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Animated, { FadeInUp, FadeIn } from "react-native-reanimated";
+import * as SecureStore from "expo-secure-store";
 import { useAuth } from "@features/auth/hooks/useAuth";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+
+const REMEMBER_KEY = "fpl4flight_remember_me";
+const SAVED_EMAIL_KEY = "fpl4flight_saved_email";
+const SAVED_PASS_KEY = "fpl4flight_saved_pass";
 
 export default function LoginScreen() {
   const { signIn, isLoading, error } = useAuth();
@@ -28,12 +34,43 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const remembered = await SecureStore.getItemAsync(REMEMBER_KEY);
+        if (remembered === "true") {
+          const savedEmail = await SecureStore.getItemAsync(SAVED_EMAIL_KEY);
+          const savedPass = await SecureStore.getItemAsync(SAVED_PASS_KEY);
+          if (savedEmail) setEmail(savedEmail);
+          if (savedPass) setPassword(savedPass);
+          setRememberMe(true);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
 
   async function handleSignIn() {
     setLocalError(null);
     if (!email.trim()) { setLocalError("Please enter your email address."); return; }
     if (!password) { setLocalError("Please enter your password."); return; }
+
+    // Save or clear credentials based on remember me
+    try {
+      if (rememberMe) {
+        await SecureStore.setItemAsync(REMEMBER_KEY, "true");
+        await SecureStore.setItemAsync(SAVED_EMAIL_KEY, email.trim());
+        await SecureStore.setItemAsync(SAVED_PASS_KEY, password);
+      } else {
+        await SecureStore.deleteItemAsync(REMEMBER_KEY);
+        await SecureStore.deleteItemAsync(SAVED_EMAIL_KEY);
+        await SecureStore.deleteItemAsync(SAVED_PASS_KEY);
+      }
+    } catch { /* ignore */ }
+
     await signIn({ email: email.trim(), password });
   }
 
@@ -108,11 +145,19 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.forgotRow} onPress={() => {
-                Alert.alert("Reset Password", "Password reset is not yet available. Contact your administrator.", [{ text: "OK" }]);
-              }}>
-                <Text style={styles.forgotText}>Forgot password?</Text>
-              </TouchableOpacity>
+              <View style={styles.rememberRow}>
+                <TouchableOpacity style={styles.rememberLeft} onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7}>
+                  <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                    {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.rememberText}>Remember me</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  Alert.alert("Reset Password", "Password reset is not yet available. Contact your administrator.", [{ text: "OK" }]);
+                }}>
+                  <Text style={styles.forgotText}>Forgot password?</Text>
+                </TouchableOpacity>
+              </View>
 
               {displayError && (
                 <Animated.View entering={FadeIn.duration(200)} style={styles.errorBox}>
@@ -240,6 +285,40 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: "600",
     color: colors.brand[600],
+  },
+  rememberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.lg,
+  },
+  rememberLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.runway[300],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxActive: {
+    backgroundColor: colors.brand[600],
+    borderColor: colors.brand[600],
+  },
+  checkmark: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  rememberText: {
+    fontSize: fontSize.sm,
+    color: colors.runway[600],
+    fontWeight: "500",
   },
   errorBox: {
     backgroundColor: colors.red[50],
