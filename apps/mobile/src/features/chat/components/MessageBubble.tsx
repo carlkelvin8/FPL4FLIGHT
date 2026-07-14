@@ -52,7 +52,7 @@ export function MessageBubble({
   onPin,
   onEdit,
 }: MessageBubbleProps) {
-  const displayName = message.displayName ?? message.userId.substring(0, 8);
+  const displayName = isOwn ? "You" : (message.displayName ?? message.userId.substring(0, 8));
   const initials = displayName
     .split(" ")
     .map((w) => w[0])
@@ -118,6 +118,9 @@ export function MessageBubble({
           {message.type === "location" && <LocationContent message={message} />}
           {message.type === "text" && <MetarInlineContent message={message} />}
 
+          {/* Action buttons — only show on long press, hidden by default */}
+          {/* Actions are triggered via long-press → reaction picker */}
+
           {/* Pinned indicator */}
           {message.isPinned && (
             <View style={styles.pinnedBadge}>
@@ -125,43 +128,6 @@ export function MessageBubble({
               <Text style={styles.pinnedText}>Pinned</Text>
             </View>
           )}
-
-          {/* Action buttons (reply, react, pin) */}
-          <View style={styles.actions}>
-            {onReply && (
-              <TouchableOpacity style={styles.actionBtn} onPress={() => onReply(message)} activeOpacity={0.7}>
-                <Ionicons name="arrow-undo-outline" size={14} color={colors.runway[400]} />
-              </TouchableOpacity>
-            )}
-            {onReact && (
-              <TouchableOpacity style={styles.actionBtn} onPress={() => onReact(message.id)} activeOpacity={0.7}>
-                <Ionicons name="happy-outline" size={14} color={colors.runway[400]} />
-              </TouchableOpacity>
-            )}
-            {onPin && (
-              <TouchableOpacity style={styles.actionBtn} onPress={() => onPin(message.id)} activeOpacity={0.7}>
-                <Ionicons name={message.isPinned ? "pin" : "pin-outline"} size={14} color={colors.amber[500]} />
-              </TouchableOpacity>
-            )}
-            {isOwn && onEdit && (Date.now() - message.createdAt.getTime() < 5 * 60 * 1000) && (
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onEdit(message)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="pencil-outline" size={14} color={colors.brand[500]} />
-              </TouchableOpacity>
-            )}
-            {isOwn && onDelete && (
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); onDelete(message.id); }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="trash-outline" size={14} color={colors.red[500]} />
-              </TouchableOpacity>
-            )}
-          </View>
 
           {/* Reactions */}
           {message.reactions.length > 0 && (
@@ -277,19 +243,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.runway[700],
     lineHeight: 22,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: spacing.xs,
-    marginTop: 4,
-    opacity: 0.6,
-  },
-  actionBtn: {
-    width: 28,
-    height: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: borderRadius.sm,
   },
   reactionsRow: {
     flexDirection: "row",

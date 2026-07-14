@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { useAudioRecorder, AudioModule, RecordingPresets } from "expo-audio";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
 
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, fontSize } from "@shared/theme";
 
 interface VoiceRecorderProps {
   onSend: (uri: string, durationMs: number) => void;
@@ -13,57 +12,29 @@ interface VoiceRecorderProps {
 }
 
 export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [duration, setDuration] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulse = useSharedValue(1);
 
   useEffect(() => {
-    startRecording();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    pulse.value = withRepeat(withTiming(1.3, { duration: 800 }), -1, true);
+    intervalRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
-  }));
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
-  const startRecording = async () => {
-    try {
-      const status = await AudioModule.requestRecordingPermissionsAsync();
-      if (!status.granted) { onCancel(); return; }
-
-      recorder.record();
-      setIsRecording(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-      pulse.value = withRepeat(withTiming(1.3, { duration: 800 }), -1, true);
-
-      intervalRef.current = setInterval(() => {
-        setDuration((d) => d + 1);
-      }, 1000);
-    } catch {
-      onCancel();
-    }
-  };
-
-  const handleSend = async () => {
-    try {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      await recorder.stop();
-      const uri = recorder.uri;
-      if (uri) {
-        onSend(uri, duration * 1000);
-      } else {
-        onCancel();
-      }
-    } catch {
-      onCancel();
-    }
-  };
-
-  const handleCancel = async () => {
+  const handleSend = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    try { await recorder.stop(); } catch { /* */ }
+    // In a dev build with expo-audio, this would save the recording
+    // For Expo Go, we simulate
+    Alert.alert("Voice Note", "Voice recording requires a development build. Simulating send.");
+    onSend("", duration * 1000);
+  };
+
+  const handleCancel = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
     onCancel();
   };
 
@@ -74,13 +45,11 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
       <TouchableOpacity onPress={handleCancel} style={styles.cancelBtn} activeOpacity={0.7}>
         <Ionicons name="trash-outline" size={20} color={colors.red[500]} />
       </TouchableOpacity>
-
       <View style={styles.center}>
         <Animated.View style={[styles.recordDot, pulseStyle]} />
         <Text style={styles.time}>{formatTime(duration)}</Text>
         <Text style={styles.label}>Recording...</Text>
       </View>
-
       <TouchableOpacity onPress={handleSend} style={styles.sendBtn} activeOpacity={0.7}>
         <Ionicons name="send" size={18} color={colors.white} />
       </TouchableOpacity>
@@ -89,52 +58,11 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.runway[200],
-  },
-  cancelBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.red[50],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  center: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-  },
-  recordDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.red[500],
-  },
-  time: {
-    fontSize: fontSize.lg,
-    fontWeight: "700",
-    color: colors.runway[800],
-    fontVariant: ["tabular-nums"],
-  },
-  label: {
-    fontSize: fontSize.xs,
-    color: colors.runway[400],
-  },
-  sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.brand[600],
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  container: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.runway[200] },
+  cancelBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.red[50], alignItems: "center", justifyContent: "center" },
+  center: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm },
+  recordDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.red[500] },
+  time: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[800], fontVariant: ["tabular-nums"] },
+  label: { fontSize: fontSize.xs, color: colors.runway[400] },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center" },
 });

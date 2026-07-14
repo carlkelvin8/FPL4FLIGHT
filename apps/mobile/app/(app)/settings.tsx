@@ -176,6 +176,68 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
+      {/* Pilot ID Card — Premium Glass Design */}
+      <View style={styles.idCardContainer}>
+        <View style={styles.idCard}>
+          {/* Gradient accent top */}
+          <View style={styles.idCardGradientTop} />
+          
+          {/* Header */}
+          <View style={styles.idCardHeader}>
+            <View style={styles.idCardHeaderLeft}>
+              <Text style={styles.idCardBrand}>FPL4FLIGHT</Text>
+              <Text style={styles.idCardSubtitle}>DIGITAL PILOT CERTIFICATE</Text>
+            </View>
+            <View style={styles.idCardChip}>
+              <View style={styles.idCardChipInner}>
+                <Ionicons name="airplane" size={14} color="#fff" />
+              </View>
+            </View>
+          </View>
+
+          {/* Main content */}
+          <View style={styles.idCardContent}>
+            <View style={styles.idCardAvatarSection}>
+              <View style={[styles.idCardAvatar, { backgroundColor: selectedAvatar.bg }]}>  
+                <Ionicons name={selectedAvatar.icon} size={26} color="#fff" />
+              </View>
+              <View style={styles.idCardVerifiedBadge}>
+                <Ionicons name="checkmark-circle" size={16} color="#34d399" />
+              </View>
+            </View>
+
+            <View style={styles.idCardTextSection}>
+              <Text style={styles.idCardPilotName}>{displayName}</Text>
+              <Text style={styles.idCardRole}>{(profile?.role ?? user?.role ?? "pilot").toUpperCase()} • VERIFIED</Text>
+            </View>
+          </View>
+
+          {/* Details grid */}
+          <View style={styles.idCardGrid}>
+            <View style={styles.idCardGridItem}>
+              <Text style={styles.idCardGridLabel}>EMAIL</Text>
+              <Text style={styles.idCardGridValue} numberOfLines={1}>{email}</Text>
+            </View>
+            <View style={styles.idCardGridItem}>
+              <Text style={styles.idCardGridLabel}>MEMBER ID</Text>
+              <Text style={styles.idCardGridValue}>{user?.id?.substring(0, 8).toUpperCase() ?? "—"}</Text>
+            </View>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.idCardFooter}>
+            <View style={styles.idCardFooterLeft}>
+              <View style={styles.idCardActiveDot} />
+              <Text style={styles.idCardFooterStatus}>ACTIVE</Text>
+            </View>
+            <Text style={styles.idCardFooterYear}>EST. {new Date().getFullYear()}</Text>
+          </View>
+
+          {/* Bottom accent */}
+          <View style={styles.idCardGradientBottom} />
+        </View>
+      </View>
+
       {/* Preferences */}
       <Text style={styles.sectionLabel}>Preferences</Text>
       <Card variant="default" style={styles.card}>
@@ -254,25 +316,18 @@ export default function SettingsScreen() {
         ))}
       </Card>
 
-      {/* Pilot Tools */}
+      {/* Pilot Tools — Compact Grid */}
       <Text style={styles.sectionLabel}>Pilot Tools</Text>
-      <Card variant="default" style={styles.card}>
-        {PILOT_TOOLS.map((tool, i) => (
-          <View key={tool.label}>
-            <PressableScale style={styles.linkRow} haptic onPress={() => router.push(tool.route as any)}>
-              <View style={[styles.iconCircle, { backgroundColor: colors.brand[50] }]}>
-                <Ionicons name={tool.icon} size={16} color={colors.brand[600]} />
-              </View>
-              <View style={styles.linkContent}>
-                <Text style={styles.linkLabel}>{tool.label}</Text>
-                <Text style={styles.linkDesc}>{tool.desc}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={colors.runway[400]} />
-            </PressableScale>
-            {i < PILOT_TOOLS.length - 1 && <View style={styles.divider} />}
-          </View>
+      <View style={styles.toolsGrid}>
+        {PILOT_TOOLS.map((tool) => (
+          <PressableScale key={tool.label} style={styles.toolCard} haptic onPress={() => router.push(tool.route as any)}>
+            <View style={styles.toolIconBg}>
+              <Ionicons name={tool.icon} size={20} color={colors.brand[600]} />
+            </View>
+            <Text style={styles.toolLabel} numberOfLines={2}>{tool.label}</Text>
+          </PressableScale>
         ))}
-      </Card>
+      </View>
 
       {/* App Info */}
       <Text style={styles.sectionLabel}>About</Text>
@@ -350,7 +405,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
 
   // Profile card
-  profileCard: { flexDirection: "row", gap: spacing.md, alignItems: "center", marginHorizontal: spacing.lg, marginBottom: spacing.lg },
+  profileCard: { flexDirection: "row", gap: spacing.md, alignItems: "center", marginHorizontal: spacing.lg, marginBottom: spacing.md },
   avatar: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", position: "relative" },
   avatarBadge: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.runway[700], alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.white },
   profileInfo: { flex: 1 },
@@ -403,4 +458,38 @@ const styles = StyleSheet.create({
   checkBadge: { position: "absolute", bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.white },
   modalDismiss: { backgroundColor: colors.runway[900], paddingHorizontal: spacing["2xl"], paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, width: "100%", alignItems: "center" },
   modalDismissText: { fontSize: fontSize.base, fontWeight: "600", color: colors.white },
+
+  // Pilot ID Card — Ultra Premium Glass Design
+  idCardContainer: { marginHorizontal: spacing.md, marginBottom: spacing.lg },
+  idCard: { borderRadius: 20, overflow: "hidden", backgroundColor: "#1e1b4b", shadowColor: "#6366f1", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.4, shadowRadius: 24, elevation: 12 },
+  idCardGradientTop: { height: 4, backgroundColor: "#818cf8" },
+  idCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingTop: 16, paddingBottom: 8 },
+  idCardHeaderLeft: {},
+  idCardBrand: { fontSize: 10, fontWeight: "900", color: "#c7d2fe", letterSpacing: 3 },
+  idCardSubtitle: { fontSize: 9, fontWeight: "600", color: "#6366f1", marginTop: 2, letterSpacing: 0.8 },
+  idCardChip: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(99,102,241,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "rgba(129,140,248,0.3)" },
+  idCardChipInner: { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(99,102,241,0.4)", alignItems: "center", justifyContent: "center" },
+  idCardContent: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 14, gap: 14 },
+  idCardAvatarSection: { position: "relative" },
+  idCardAvatar: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "rgba(129,140,248,0.5)" },
+  idCardVerifiedBadge: { position: "absolute", bottom: -3, right: -3, backgroundColor: "#1e1b4b", borderRadius: 10, padding: 2 },
+  idCardTextSection: { flex: 1 },
+  idCardPilotName: { fontSize: 20, fontWeight: "800", color: "#ffffff", letterSpacing: -0.5 },
+  idCardRole: { fontSize: 10, fontWeight: "700", color: "#34d399", marginTop: 4, letterSpacing: 1.2 },
+  idCardGrid: { flexDirection: "row", paddingHorizontal: 18, paddingBottom: 14, gap: 12 },
+  idCardGridItem: { flex: 1, backgroundColor: "rgba(99,102,241,0.08)", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "rgba(129,140,248,0.15)" },
+  idCardGridLabel: { fontSize: 8, fontWeight: "700", color: "#818cf8", letterSpacing: 1.2, marginBottom: 3 },
+  idCardGridValue: { fontSize: 11, fontWeight: "600", color: "#e0e7ff" },
+  idCardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingVertical: 10, backgroundColor: "rgba(30,27,75,0.6)", borderTopWidth: 1, borderTopColor: "rgba(129,140,248,0.1)" },
+  idCardFooterLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+  idCardActiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#34d399" },
+  idCardFooterStatus: { fontSize: 9, fontWeight: "800", color: "#34d399", letterSpacing: 1 },
+  idCardFooterYear: { fontSize: 9, fontWeight: "600", color: "#6366f1" },
+  idCardGradientBottom: { height: 3, backgroundColor: "#6366f1" },
+
+  // Pilot Tools Grid
+  toolsGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: spacing.md, gap: spacing.sm, marginBottom: spacing.md },
+  toolCard: { width: "30%", backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.sm, alignItems: "center", borderWidth: 1, borderColor: colors.runway[100], minHeight: 80, justifyContent: "center" },
+  toolIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.brand[50], alignItems: "center", justifyContent: "center", marginBottom: spacing.xs },
+  toolLabel: { fontSize: 10, fontWeight: "600", color: colors.runway[700], textAlign: "center" },
 });

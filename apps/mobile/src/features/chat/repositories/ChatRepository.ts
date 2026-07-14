@@ -364,7 +364,20 @@ export class ChatRepository {
     if (userIds.length === 0) return map;
     try {
       const { data } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
-      if (data) for (const row of data) { if (row.full_name) map.set(row.id, row.full_name); }
+      if (data) {
+        for (const row of data) {
+          if (row.full_name) {
+            map.set(row.id, row.full_name);
+          }
+        }
+      }
+      // For users without full_name, try to get their email from current session
+      // This ensures at least the current user shows their email-based name
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser && !map.has(currentUser.id)) {
+        const emailName = currentUser.email?.split("@")[0] ?? "Pilot";
+        map.set(currentUser.id, emailName);
+      }
     } catch { /* non-critical */ }
     return map;
   }

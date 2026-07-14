@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import {
   View, Text, TextInput, StyleSheet, ScrollView, Alert,
-  ActivityIndicator, TouchableOpacity,
+  ActivityIndicator, TouchableOpacity, Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "@features/auth/stores/authStore";
 import { useProfile } from "@features/forms/hooks/useProfile";
 import { supabase } from "@core/network";
@@ -27,6 +28,10 @@ export default function AccountScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [pilotIds, setPilotIds] = useState<string[]>([]);
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [licenseType, setLicenseType] = useState("");
+  const [medicalExpiry, setMedicalExpiry] = useState("");
 
   useEffect(() => {
     mountedRef.current = true;
@@ -197,6 +202,90 @@ export default function AccountScreen() {
           </PressableScale>
         </View>
 
+        {/* Pilot ID Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>PILOT ID CARD</Text>
+
+          <View style={styles.idCard}>
+            <View style={styles.idCardHeader}>
+              <Text style={styles.idCardOrg}>FPL4FLIGHT</Text>
+              <Text style={styles.idCardType}>PILOT IDENTIFICATION</Text>
+            </View>
+            <View style={styles.idCardBody}>
+              <View style={styles.idCardAvatar}>
+                <Text style={styles.idCardAvatarText}>{displayInitial}</Text>
+              </View>
+              <View style={styles.idCardInfo}>
+                <Text style={styles.idCardName}>{fullName || "Pilot Name"}</Text>
+                <Text style={styles.idCardDetail}>License: {licenseNumber || "—"}</Text>
+                <Text style={styles.idCardDetail}>Type: {licenseType || "PPL / CPL / ATPL"}</Text>
+                <Text style={styles.idCardDetail}>Medical: {medicalExpiry || "—"}</Text>
+                <Text style={styles.idCardDetail}>Email: {email}</Text>
+              </View>
+            </View>
+            <View style={styles.idCardFooter}>
+              <Text style={styles.idCardFooterText}>Role: {role.toUpperCase()}</Text>
+              <Text style={styles.idCardFooterText}>ID: {user?.id?.substring(0, 8) ?? "—"}</Text>
+            </View>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>License Number</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="card-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <TextInput style={styles.input} value={licenseNumber} onChangeText={setLicenseNumber} placeholder="e.g. 10414CPL/C172" placeholderTextColor={colors.runway[300]} />
+            </View>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>License Type</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="ribbon-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <TextInput style={styles.input} value={licenseType} onChangeText={setLicenseType} placeholder="PPL / CPL / ATPL" placeholderTextColor={colors.runway[300]} />
+            </View>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Medical Expiry</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="medkit-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <TextInput style={styles.input} value={medicalExpiry} onChangeText={setMedicalExpiry} placeholder="e.g. 2027-06-30" placeholderTextColor={colors.runway[300]} />
+            </View>
+          </View>
+        </View>
+
+        {/* Uploaded Documents (max 6) */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>DOCUMENTS & IDs (max 6)</Text>
+          <Text style={styles.docHint}>Upload photos of your pilot license, medical certificate, or other IDs.</Text>
+
+          <View style={styles.docGrid}>
+            {pilotIds.map((uri, idx) => (
+              <View key={idx} style={styles.docSlot}>
+                <Image source={{ uri }} style={styles.docImage} />
+                <TouchableOpacity style={styles.docRemoveBtn} onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setPilotIds((prev) => prev.filter((_, i) => i !== idx));
+                }}>
+                  <Ionicons name="close-circle" size={20} color={colors.red[500]} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {pilotIds.length < 6 && (
+              <TouchableOpacity style={styles.docAddSlot} onPress={async () => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+                if (!result.canceled && result.assets[0]) {
+                  setPilotIds((prev) => [...prev, result.assets[0]!.uri]);
+                }
+              }} activeOpacity={0.7}>
+                <Ionicons name="add" size={28} color={colors.runway[400]} />
+                <Text style={styles.docAddText}>Add ID</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* Security Card */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>SECURITY</Text>
@@ -345,4 +434,25 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.red[100], backgroundColor: colors.white,
   },
   dangerBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.red[600] },
+  // Pilot ID Card
+  idCard: { borderWidth: 1, borderColor: colors.runway[200], borderRadius: borderRadius.md, overflow: "hidden", marginBottom: spacing.lg },
+  idCardHeader: { backgroundColor: colors.brand[600], padding: spacing.sm, alignItems: "center" },
+  idCardOrg: { fontSize: 10, fontWeight: "700", color: colors.white, letterSpacing: 1 },
+  idCardType: { fontSize: fontSize.xs, fontWeight: "600", color: colors.brand[200] },
+  idCardBody: { flexDirection: "row", padding: spacing.md, gap: spacing.md, backgroundColor: colors.white },
+  idCardAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.brand[100], alignItems: "center", justifyContent: "center" },
+  idCardAvatarText: { fontSize: 22, fontWeight: "700", color: colors.brand[600] },
+  idCardInfo: { flex: 1 },
+  idCardName: { fontSize: fontSize.base, fontWeight: "700", color: colors.runway[900], marginBottom: 4 },
+  idCardDetail: { fontSize: fontSize.xs, color: colors.runway[500], marginBottom: 2 },
+  idCardFooter: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: colors.runway[50], borderTopWidth: 1, borderTopColor: colors.runway[100] },
+  idCardFooterText: { fontSize: 9, fontWeight: "600", color: colors.runway[400] },
+  // Documents
+  docHint: { fontSize: fontSize.xs, color: colors.runway[400], marginBottom: spacing.md },
+  docGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  docSlot: { width: 90, height: 90, borderRadius: borderRadius.sm, overflow: "hidden", position: "relative" },
+  docImage: { width: "100%", height: "100%", borderRadius: borderRadius.sm },
+  docRemoveBtn: { position: "absolute", top: 2, right: 2 },
+  docAddSlot: { width: 90, height: 90, borderRadius: borderRadius.sm, borderWidth: 1.5, borderColor: colors.runway[200], borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  docAddText: { fontSize: 9, fontWeight: "600", color: colors.runway[400], marginTop: 2 },
 });

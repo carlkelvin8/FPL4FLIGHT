@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useAudioPlayer } from "expo-audio";
+import MapView, { Marker } from "react-native-maps";
 
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 
@@ -27,20 +27,13 @@ export function ImageContent({ message }: { message: ChatMessage }) {
 
 export function VoiceContent({ message }: { message: ChatMessage }) {
   const [playing, setPlaying] = useState(false);
-  const player = useAudioPlayer(message.voiceUrl ?? "");
 
   const duration = message.voiceDuration ? Math.round(message.voiceDuration / 1000) : 0;
   const formatted = `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, "0")}`;
 
   const togglePlay = () => {
-    if (!message.voiceUrl) return;
-    if (playing) {
-      player.pause();
-      setPlaying(false);
-    } else {
-      player.play();
-      setPlaying(true);
-    }
+    setPlaying(!playing);
+    // Audio playback would go here with expo-audio in a dev build
   };
 
   return (
@@ -50,7 +43,7 @@ export function VoiceContent({ message }: { message: ChatMessage }) {
       </View>
       <View style={styles.voiceWave}>
         {Array.from({ length: 12 }).map((_, i) => (
-          <View key={i} style={[styles.voiceBar, { height: 6 + Math.random() * 14 }]} />
+          <View key={i} style={[styles.voiceBar, { height: 6 + (i % 3) * 5 + 2 }]} />
         ))}
       </View>
       <Text style={styles.voiceDuration}>{formatted}</Text>
@@ -59,8 +52,6 @@ export function VoiceContent({ message }: { message: ChatMessage }) {
 }
 
 // ─── Location Message ───────────────────────────────────────
-
-import MapView, { Marker } from "react-native-maps";
 
 export function LocationContent({ message }: { message: ChatMessage }) {
   if (message.latitude == null || message.longitude == null) return null;

@@ -16,7 +16,6 @@ import { formRepository } from "@features/forms/repositories/FormRepository";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
 import { formatDateStr, getCalendarDays, MONTH_NAMES } from "@shared/utils";
-import { PNP_SEAL } from "@features/forms/constants/logos";
 import { QRShareModal } from "@shared/components/QRShareModal";
 
 interface FormField {
@@ -811,7 +810,7 @@ th{font-weight:bold;text-align:center;font-size:9px;}
 </style></head><body>
 
 <div class="hdr">
-<div class="hdr-logo"><img src="${PNP_SEAL}" alt="PNP"/></div>
+<div class="hdr-logo"><img src="" alt="PNP"/></div>
 <div class="hdr-center">
 <p class="h-rp">Republic of the Philippines</p>
 <p class="h-npc">NATIONAL POLICE COMMISSION</p>
@@ -820,7 +819,7 @@ th{font-weight:bold;text-align:center;font-size:9px;}
 <p class="h-paps">PLARIDEL AIRPORT POLICE STATION</p>
 <p class="h-addr">Plaridel Airport, Brgy. Lumang Bayan, Plaridel, Bulacan</p>
 </div>
-<div class="hdr-logo"><img src="${PNP_SEAL}" alt="NAPOLCOM"/></div>
+<div class="hdr-logo"><img src="" alt="NAPOLCOM"/></div>
 </div>
 <p class="h-title">${formTitle}</p>
 </div>
