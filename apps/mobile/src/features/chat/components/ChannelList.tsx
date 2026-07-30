@@ -6,11 +6,6 @@ import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 
 import type { ChatChannel } from "../types";
 
-// Enable LayoutAnimation on Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 interface ChannelListProps {
   channels: ChatChannel[];
   activeChannelId: string;

@@ -249,7 +249,8 @@ export default function FormEditorScreen() {
             originWhitelist={["*"]}
             source={{ html: generatePDFHtml(templateName, sections, formData) }}
             style={{ flex: 1 }}
-            scalesPageToFit={true}
+            scalesPageToFit={false}
+            injectedJavaScript={`document.querySelector('meta[name="viewport"]') || document.head.insertAdjacentHTML('beforeend', '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3">'); true;`}
           />
         </View>
       </Modal>
@@ -497,250 +498,71 @@ function generatePDFHtml(title: string, sections: FormSection[], data: Record<st
   return generatePnpChecklistHtml(title, data);
 }
 
-/** CAAP Flight Plan ATS 2019-1 layout */
+/** CAAP Flight Plan ATS 2019-1 — 1:1 using real blank form as background */
 function generateCaapFlightPlanHtml(data: Record<string, unknown>): string {
   const d = (key: string) => String(data[key] || "");
-  const chk = (key: string) => data[key] === "Yes" ? "✓" : "";
+  const chk = (key: string) => data[key] === "Yes" ? "✗" : "";
+  // Import embedded base64 image
+  const { CAAP_BG } = require("@features/forms/caap-bg");
+  const BG = CAAP_BG;
+
+  // Field positions as % of page (top, left) — calibrated to the blank form
+  const f = [
+    { t: 10.2, l: 17, v: d("addressees"), s: 9 },
+    { t: 13.5, l: 9, v: d("date_of_filing"), s: 10 },
+    { t: 13.5, l: 27, v: d("originator"), s: 9 },
+    { t: 18.5, l: 6, v: d("message_type") || "FPL", s: 9 },
+    { t: 18.5, l: 30, v: d("aircraft_id"), s: 11 },
+    { t: 18.5, l: 64, v: d("flight_rules"), s: 12 },
+    { t: 18.5, l: 79, v: d("type_of_flight"), s: 12 },
+    { t: 22.5, l: 9, v: d("number_aircraft"), s: 10 },
+    { t: 22.5, l: 18, v: d("type_of_aircraft"), s: 11 },
+    { t: 22.5, l: 37, v: d("wake_turbulence"), s: 12 },
+    { t: 22.5, l: 63, v: `${d("equipment")} / ${d("surveillance")}`, s: 9 },
+    { t: 26.5, l: 8, v: d("departure_aerodrome"), s: 11 },
+    { t: 26.5, l: 38, v: d("departure_time"), s: 11 },
+    { t: 30, l: 6, v: d("cruising_speed"), s: 10 },
+    { t: 30, l: 22, v: d("level"), s: 10 },
+    { t: 30, l: 38, v: d("route"), s: 8, w: 55 },
+    { t: 37, l: 9, v: d("destination_aerodrome"), s: 11 },
+    { t: 37, l: 30, v: d("total_eet"), s: 11 },
+    { t: 37, l: 49, v: d("altn_aerodrome"), s: 11 },
+    { t: 37, l: 72, v: d("altn_aerodrome_2"), s: 11 },
+    { t: 41, l: 5, v: d("other_info"), s: 8, w: 90 },
+    { t: 51.5, l: 8, v: `${d("endurance_hr")}${d("endurance_min")}`, s: 11 },
+    { t: 51.5, l: 29, v: d("persons_on_board"), s: 11 },
+    { t: 51.5, l: 62, v: chk("emergency_radio_uhf"), s: 12 },
+    { t: 51.5, l: 72, v: chk("emergency_radio_vhf"), s: 12 },
+    { t: 51.5, l: 82, v: chk("emergency_radio_elt"), s: 12 },
+    { t: 55.5, l: 12, v: chk("survival_polar"), s: 12 },
+    { t: 55.5, l: 23, v: chk("survival_desert"), s: 12 },
+    { t: 55.5, l: 36, v: chk("survival_maritime"), s: 12 },
+    { t: 55.5, l: 48, v: chk("survival_jungle"), s: 12 },
+    { t: 55.5, l: 62, v: chk("jackets_light"), s: 12 },
+    { t: 55.5, l: 72, v: chk("jackets_fluores"), s: 12 },
+    { t: 55.5, l: 82, v: chk("jackets_uhf"), s: 12 },
+    { t: 55.5, l: 90, v: chk("jackets_vhf"), s: 12 },
+    { t: 60, l: 12, v: d("dinghies_number"), s: 10 },
+    { t: 60, l: 24, v: d("dinghies_capacity"), s: 10 },
+    { t: 60, l: 38, v: chk("dinghies_cover"), s: 12 },
+    { t: 60, l: 52, v: d("dinghies_colour"), s: 9 },
+    { t: 64, l: 7, v: d("aircraft_colour"), s: 10, w: 80 },
+    { t: 68, l: 7, v: d("remarks"), s: 9, w: 80 },
+    { t: 72, l: 7, v: d("pilot_in_command"), s: 10, w: 65 },
+    { t: 76, l: 12, v: d("filed_by"), s: 9 },
+    { t: 86, l: 5, v: d("pilot_name_signature"), s: 9 },
+    { t: 86, l: 35, v: d("license_no"), s: 9 },
+  ];
+
+  const overlays = f.filter(x => x.v).map(x =>
+    `<div style="position:absolute;top:${x.t}%;left:${x.l}%;font-size:${x.s}px;font-family:'Courier New',monospace;font-weight:bold;color:#000;${x.w ? `max-width:${x.w}%` : ""}">${x.v}</div>`
+  ).join("\n");
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-@page{size:A4 portrait;margin:8mm;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:"Courier New",Courier,monospace;font-size:9px;padding:10px;color:#000;}
-.title{font-size:9px;font-weight:bold;margin-bottom:2px;}
-.subtitle{text-align:center;font-size:10px;}
-.subtitle-bold{text-align:center;font-size:11px;font-weight:bold;}
-.form-title{text-align:center;font-size:11px;font-weight:bold;margin:6px 0 8px;text-decoration:underline;}
-table{width:100%;border-collapse:collapse;margin-bottom:3px;}
-td,th{border:1px solid #000;padding:2px 4px;font-size:9px;vertical-align:top;}
-.lbl{font-size:7px;color:#333;}
-.val{font-weight:bold;font-size:10px;}
-.sec{background:#eee;font-weight:bold;text-align:center;font-size:8px;padding:3px;}
-.box{display:inline-block;width:13px;height:13px;border:1px solid #000;text-align:center;font-size:9px;line-height:13px;margin:0 1px;}
-.cert{font-size:7.5px;line-height:1.3;text-align:justify;margin:4px 0;padding:4px;border:1px solid #000;}
-</style></head><body>
-<div class="title">CAAP Form ATS 2019-1</div>
-<div class="title">Flight Plan</div>
-<div class="subtitle">Republic of the Philippines</div>
-<div class="subtitle-bold">CIVIL AVIATION AUTHORITY OF THE PHILIPPINES</div>
-<div class="subtitle">Old MIA Rd, Pasay City, Metro Manila 1300</div>
-<div class="form-title">FLIGHT PLAN</div>
-
-<table><tr><td class="lbl" style="width:60px">PRIORITY<br><span class="val">&lt;&lt;= FF →</span></td><td class="lbl">ADDRESSEE(S)<br><span class="val">${d("addressees")}</span></td><td style="width:25px" class="lbl">&lt;&lt;=</td></tr></table>
-
-<table><tr><td class="lbl" style="width:110px">DATE OF FILING<br><span class="val">${d("date_of_filing")}</span></td><td class="lbl">→ ORIGINATOR<br><span class="val">${d("originator")}</span></td><td style="width:25px" class="lbl">&lt;&lt;=</td></tr></table>
-
-<table><tr>
-<td class="lbl" style="width:70px">3. MESSAGE TYPE<br><span class="val">( ${d("message_type")} )</span></td>
-<td class="lbl">7. AIRCRAFT IDENTIFICATION<br><span class="val">${d("aircraft_id")}</span></td>
-<td class="lbl" style="width:65px">8. FLIGHT RULES<br><span class="val">${d("flight_rules")}</span></td>
-<td class="lbl" style="width:70px">TYPE OF FLIGHT<br><span class="val">${d("type_of_flight")}</span></td>
-<td style="width:25px" class="lbl">&lt;&lt;=</td>
-</tr></table>
-
-<table><tr>
-<td class="lbl" style="width:50px">9. NUMBER<br><span class="val">${d("number_aircraft")}</span></td>
-<td class="lbl" style="width:90px">TYPE OF AIRCRAFT<br><span class="val">${d("type_of_aircraft")}</span></td>
-<td class="lbl" style="width:20px">/</td>
-<td class="lbl" style="width:50px">WAKE TURB.<br><span class="val">${d("wake_turbulence")}</span></td>
-<td class="lbl">10. EQUIPMENT<br><span class="val">${d("equipment")}</span></td>
-<td class="lbl" style="width:60px">SURV.<br><span class="val">${d("surveillance")}</span></td>
-<td style="width:25px" class="lbl">&lt;&lt;=</td>
-</tr></table>
-
-<table><tr>
-<td class="lbl" style="width:130px">13. DEPARTURE AERODROME<br><span class="val">${d("departure_aerodrome")}</span></td>
-<td class="lbl" style="width:70px">TIME<br><span class="val">${d("departure_time")}</span></td>
-<td style="width:25px" class="lbl">&lt;&lt;=</td>
-</tr></table>
-
-<table><tr>
-<td class="lbl" style="width:80px">15. CRUISING SPEED<br><span class="val">${d("cruising_speed")}</span></td>
-<td class="lbl" style="width:50px">LEVEL<br><span class="val">${d("level")}</span></td>
-<td class="lbl">→ ROUTE<br><span class="val">${d("route")}</span></td>
-</tr></table>
-
-<table><tr>
-<td class="lbl" style="width:120px">16. DEST. AERODROME<br><span class="val">${d("destination_aerodrome")}</span></td>
-<td class="lbl" style="width:70px">TOTAL EET<br><span class="val">${d("total_eet")}</span></td>
-<td class="lbl">→ ALTN<br><span class="val">${d("altn_aerodrome")}</span></td>
-<td class="lbl">→ 2nd ALTN<br><span class="val">${d("altn_aerodrome_2")}</span></td>
-<td style="width:25px" class="lbl">&lt;&lt;=</td>
-</tr></table>
-
-<table><tr><td class="lbl">18. OTHER INFORMATION<br><span class="val">${d("other_info")}</span></td></tr></table>
-
-<table><tr><td class="sec">SUPPLEMENTARY INFORMATION (NOT TO BE TRANSMITTED IN FPL MESSAGES)</td></tr></table>
-
-<table><tr>
-<td class="lbl">19 ENDURANCE<br>E / <span class="val">${d("endurance_hr")}</span> : <span class="val">${d("endurance_min")}</span></td>
-<td class="lbl">→ P / <span class="val">${d("persons_on_board")}</span></td>
-<td class="lbl">→ R / UHF <span class="box">${chk("emergency_radio_uhf")}</span> VHF <span class="box">${chk("emergency_radio_vhf")}</span> ELT <span class="box">${chk("emergency_radio_elt")}</span></td>
-</tr></table>
-
-<table><tr>
-<td class="lbl">SURVIVAL EQUIP → S / POLAR <span class="box">${chk("survival_polar")}</span> DESERT <span class="box">${chk("survival_desert")}</span> MARITIME <span class="box">${chk("survival_maritime")}</span> JUNGLE <span class="box">${chk("survival_jungle")}</span></td>
-<td class="lbl">JACKETS J / LIGHT <span class="box">${chk("jackets_light")}</span> FLUORES <span class="box">${chk("jackets_fluores")}</span> UHF <span class="box">${chk("jackets_uhf")}</span> VHF <span class="box">${chk("jackets_vhf")}</span></td>
-</tr></table>
-
-<table><tr><td class="lbl">DINGHIES D / NUMBER <span class="val">${d("dinghies_number")}</span> CAPACITY <span class="val">${d("dinghies_capacity")}</span> COVER <span class="box">${chk("dinghies_cover")}</span> COLOUR <span class="val">${d("dinghies_colour")}</span></td><td style="width:25px" class="lbl">&lt;&lt;=</td></tr></table>
-
-<table><tr><td class="lbl">AIRCRAFT COLOUR AND MARKINGS<br>A / <span class="val">${d("aircraft_colour")}</span></td></tr></table>
-
-<table><tr><td class="lbl">REMARKS<br>N / <span class="val">${d("remarks")}</span></td><td style="width:25px" class="lbl">&lt;&lt;=</td></tr></table>
-
-<table><tr><td class="lbl">PILOT IN COMMAND<br>C / <span class="val">${d("pilot_in_command")}</span></td><td style="width:35px" class="lbl">) &lt;&lt;=</td></tr></table>
-
-<table><tr><td class="lbl" style="width:50px">FILED BY</td><td class="val">${d("filed_by")}</td></tr></table>
-
-<div class="cert"><strong>CERTIFICATION</strong><br>This is to certify that the above entries are true and correct and that, pilot-in-command of this aircraft, pledge not to fly over prohibited and restricted areas; will not willfully deviate from the filed flight plan, except when necessary in the interest of safety; will operate only in accordance with existing Civil and Military regulations; and will not operate in any manner inimical to the security of the Republic of the Philippines.</div>
-
-<table><tr>
-<td class="lbl"><span class="val">${d("pilot_name_signature")}</span><br>PILOT'S NAME AND SIGNATURE</td>
-<td class="lbl"><span class="val">${d("license_no")}</span><br>LICENSE NO., RATING &amp; EXPIRY DATE</td>
-</tr></table>
-
-<table><tr><td class="sec" colspan="3">CAAP ACCEPTANCE</td></tr>
-<tr><td class="lbl">Received by:</td><td class="lbl">Date/Time Filed</td><td class="lbl">Facility/Airport</td></tr></table>
-
-<p style="text-align:center;font-size:7px;margin-top:4px;">(PLEASE SEE BACK PAGE FOR GUIDANCE AND INSTRUCTION)</p>
-
-<!-- PAGE 2: INSTRUCTIONS & QUICK GUIDE -->
-<div style="page-break-before:always;"></div>
-
-<h2 style="text-align:center;font-size:12px;font-weight:bold;text-decoration:underline;margin-bottom:10px;font-family:Times New Roman,serif;">I N S T R U C T I O N S</h2>
-
-<div style="font-family:Times New Roman,serif;font-size:9px;line-height:1.5;margin-bottom:12px;">
-<p style="margin-bottom:4px;"><b>1.</b> Accomplish form in Triplicate:</p>
-<p style="margin-left:16px;">a) Original (white) to AIS, FSS, TWR or Airport Officer In-Charge</p>
-<p style="margin-left:16px;">b) Duplicate (yellow) to pilot in-command</p>
-<p style="margin-left:16px;margin-bottom:6px;">c) Triplicate (green) to aircraft owner/operator</p>
-
-<p style="margin-bottom:6px;"><b>2.</b> Complete all items in the Flight Plan form as required using capital letters.</p>
-
-<p style="margin-bottom:6px;"><b>3.</b> Completed flight plan form must be personally filed, faxed or AFTN by the pilot in-command or his duly licensed authorized representative (Licensed Flight Dispatcher) with the appropriate air traffic services unit (AIS, FSS and TWR accordingly) one (1) hour before the EOBT.</p>
-
-<p style="margin-bottom:6px;"><b>4.</b> ERASURE OR ALTERATION IN ACCOMPLISHING THIS FORM IS NOT ALLOWED.</p>
-
-<p style="margin-bottom:6px;"><b>5.</b> Filed flight plan shall be kept for a period of one (1) year and must be made available for references by the appropriate authority.</p>
-
-<p style="margin-bottom:6px;"><b>6.</b> Attach passenger manifest (for general aviation flights).</p>
-
-<p style="margin-bottom:10px;"><b>7.</b> Include client name, postal address with expiry date to operate and contact number in the remarks (for general aviation flights).</p>
-</div>
-
-<h2 style="text-align:center;font-size:11px;font-weight:bold;text-decoration:underline;margin-bottom:8px;font-family:Times New Roman,serif;">QUICK GUIDE</h2>
-
-<div style="font-family:Courier New,monospace;font-size:7px;line-height:1.4;columns:3;column-gap:12px;column-rule:1px solid #ccc;">
-<p><b>Field 10a</b></p>
-<p>N No capabilities</p>
-<p>S Standard</p>
-<p>A GNSS Landing System</p>
-<p>B LPV (APV w/SBAS)</p>
-<p>C LORAN C</p>
-<p>D DME</p>
-<p>E1 FMC WPR</p>
-<p>E2 D-FIS</p>
-<p>E3 PDC</p>
-<p>F ADF</p>
-<p>G GNSS</p>
-<p>H HF RTF</p>
-<p>I INS</p>
-<p>J1 VDL Mode 2</p>
-<p>J2 HFDL</p>
-<p>J3 VDL Mode A</p>
-<p>J4 VDL Mode 2</p>
-<p>J5 Satcom Inmarsat</p>
-<p>J6 Satcom MTSAT</p>
-<p>J7 Satcom Iridium</p>
-<p>K MLS</p>
-<p>L ILS</p>
-<p>M1 Inmarsat</p>
-<p>M2 MTSAT</p>
-<p>M3 Iridium</p>
-<p>O VOR</p>
-<p>P1 CPDLC RCP 400</p>
-<p>P2 CPDLC RCP240</p>
-<p>P3 Sat Voice RCP400</p>
-<p>R PBN</p>
-<p>T TACAN</p>
-<p>U UHF RTF</p>
-<p>V VHF RTF</p>
-<p>W RVSM</p>
-<p>X MNPS</p>
-<p>Y 8.33 kHz VHF</p>
-<p>Z Other Cap.</p>
-<p>&nbsp;</p>
-<p><b>Notes:</b></p>
-<p>1. Filing R requires PBN/ in Field 18</p>
-<p>2. Filing Z requires NAV, COM, or DAT in Field 18</p>
-<p>3. Standard = VOR, VHF, ILS</p>
-<p>4. File in order shown</p>
-<p>&nbsp;</p>
-<p><b>Field 10b</b></p>
-<p>N No capability</p>
-<p><b>Transponder:</b></p>
-<p>A Mode A</p>
-<p>C Mode A and C</p>
-<p>S Mode S, ACID+Alt</p>
-<p>P Mode S, Alt, no ACID</p>
-<p>I Mode S, ACID, no Alt</p>
-<p>X Mode S, no ACID/Alt</p>
-<p><b>ADS-B:</b></p>
-<p>B1 1090 MHz out</p>
-<p>B2 1090 MHz out+in</p>
-<p>U1 UAT out+in</p>
-<p>U2 UAT out+in</p>
-<p>V1 VDL Mode 4 out</p>
-<p>V2 VDL Mode 4 out+in</p>
-<p><b>ADS-C:</b></p>
-<p>D1 ADS-C FANS-1/A</p>
-<p>G1 ADS-C ATN</p>
-<p>&nbsp;</p>
-<p><b>Field 18 Other Info</b></p>
-<p><b>(File in this order)</b></p>
-<p>STS/ Special Handling</p>
-<p>PBN/ Perf Based Nav</p>
-<p>NAV/ Other Nav Cap</p>
-<p>COM/ Other Comm Cap</p>
-<p>DAT/ Other Data App</p>
-<p>SUR/ Other Surveillance</p>
-<p>DEP/ Non-std Departure</p>
-<p>DEST/ Non-std Destination</p>
-<p>DOF/ Date of Flight</p>
-<p>REG/ Registration</p>
-<p>EET/ Estimated Elapsed</p>
-<p>TYP/ Non-std AC Type</p>
-<p>CODE/ 24-bit address</p>
-<p>DLE/ Delay at a fix</p>
-<p>OPR/ Operator</p>
-<p>ORGN/ FPL Originator</p>
-<p>PER/ Perf Category</p>
-<p>ALTN/ Non-std Alternates</p>
-<p>RALT/ Enroute Alternate</p>
-<p>TALT/ Takeoff Alternate</p>
-<p>RIF/ Route to revised Dest</p>
-<p>RMK/ Remarks</p>
-<p>&nbsp;</p>
-<p><b>PBN/ (8 max)</b></p>
-<p>A1 RNAV10 [RNP10]</p>
-<p>B1-B6 RNAV 5</p>
-<p>C1-C4 RNAV 2</p>
-<p>D1-D4 RNAV 1</p>
-<p>L1 RNP 4</p>
-<p>O1-O3 RNP 1</p>
-<p>S1 RNP APCH</p>
-<p>S2 RNP APCH w/BARO</p>
-<p>T1 RNP AR w/RF</p>
-<p>T2 RNP AR w/o RF</p>
-<p>&nbsp;</p>
-<p><b>SUR/</b></p>
-<p>RSP180</p>
-<p>RSP400</p>
-</div>
-
-</body></html>`;
+<style>*{margin:0;padding:0;box-sizing:border-box;}body{margin:0;padding:0;}.page{position:relative;width:100%;}.bg{width:100%;display:block;}.overlay{position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head><body><div class="page"><img class="bg" src="${BG}"/><div class="overlay">${overlays}</div></div></body></html>`;
 }
+
 
 /** PNP Plaridel Airport Checklist (Arrival / Pre-Flight) */
 function generatePnpChecklistHtml(title: string, data: Record<string, unknown>): string {

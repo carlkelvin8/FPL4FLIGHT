@@ -1,0 +1,182 @@
+{
+
+  "title": "PilotForms Form Template",
+  "description": "JSON Schema for PilotForms form template definitions",
+  "type": "object",
+  "required": ["sections", "metadata"],
+  "properties": {
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "fields"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "fields": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/definitions/FormField" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["formType"],
+      "properties": {
+        "formType": { "type": "string" },
+        "regulatoryBasis": { "type": ["string", "null"] },
+        "estimatedMinutes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "ConditionalRule": {
+      "type": "object",
+      "required": ["fieldId", "operator", "value"],
+      "properties": {
+        "fieldId": { "type": "string" },
+        "operator": {
+          "type": "string",
+          "enum": ["equals", "not_equals", "contains", "greater_than"]
+        },
+        "value": { "type": ["string", "number", "boolean"] }
+      },
+      "additionalProperties": false
+    },
+    "BaseField": {
+      "type": "object",
+      "required": ["id", "label", "type"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "required": { "type": "boolean", "default": false },
+        "conditional": { "$ref": "#/definitions/ConditionalRule" }
+      }
+    },
+    "TextField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "text" },
+            "maxLength": { "type": "integer", "minimum": 1 },
+            "placeholder": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "NumericField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "numeric" },
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "unit": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "DateField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "date" }
+          }
+        }
+      ]
+    },
+    "TimeField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "time" }
+          }
+        }
+      ]
+    },
+    "DropdownField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type", "options"],
+          "properties": {
+            "type": { "const": "dropdown" },
+            "options": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+    "CheckboxField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "checkbox" }
+          }
+        }
+      ]
+    },
+    "SignatureField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "signature" }
+          }
+        }
+      ]
+    },
+    "PhotoField": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseField" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "photo" },
+            "maxPhotos": { "type": "integer", "minimum": 1, "default": 10 }
+          }
+        }
+      ]
+    },
+    "FormField": {
+      "oneOf": [
+        { "$ref": "#/definitions/TextField" },
+        { "$ref": "#/definitions/NumericField" },
+        { "$ref": "#/definitions/DateField" },
+        { "$ref": "#/definitions/TimeField" },
+        { "$ref": "#/definitions/DropdownField" },
+        { "$ref": "#/definitions/CheckboxField" },
+        { "$ref": "#/definitions/SignatureField" },
+        { "$ref": "#/definitions/PhotoField" }
+      ]
+    }
+  }
+}

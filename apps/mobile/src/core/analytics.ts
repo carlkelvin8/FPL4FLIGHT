@@ -51,11 +51,17 @@ async function flushEvents(): Promise<void> {
   eventQueue.length = 0;
 
   try {
-    // In production, send to Mixpanel/Amplitude here
-    // For now, store in Supabase (optional — create analytics_events table if needed)
-    // await supabase.from("analytics_events").insert(events.map(e => ({ ...e, user_id: userId })));
+    // Store analytics events in Supabase (fire-and-forget, non-blocking)
+    await supabase.from("analytics_events").insert(
+      events.map((e) => ({
+        event_name: e.name,
+        properties: e.properties ?? {},
+        user_id: userId,
+        created_at: new Date(e.timestamp).toISOString(),
+      })),
+    );
   } catch {
-    // Re-queue on failure
+    // Re-queue on failure — will try again on next flush
     eventQueue.push(...events);
   }
 }

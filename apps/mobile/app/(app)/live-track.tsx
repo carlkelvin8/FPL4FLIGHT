@@ -6,6 +6,7 @@ import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { FeatureGate } from "@shared/components/FeatureGate";
 
 interface TrackPoint {
   latitude: number;
@@ -17,6 +18,14 @@ interface TrackPoint {
 }
 
 export default function LiveTrackScreen() {
+  return (
+    <FeatureGate feature="live_tracking" message="Track your flights in real-time with GPS. Upgrade to Pro to unlock.">
+      <LiveTrackContent />
+    </FeatureGate>
+  );
+}
+
+function LiveTrackContent() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const [tracking, setTracking] = useState(false);

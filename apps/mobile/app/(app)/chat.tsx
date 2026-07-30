@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,8 +16,6 @@ import { OnlineMembers } from "@features/chat/components/OnlineMembers";
 import { AttachmentBar } from "@features/chat/components/AttachmentBar";
 import { VoiceRecorder } from "@features/chat/components/VoiceRecorder";
 import { SearchModal } from "@features/chat/components/SearchModal";
-import { PinnedMessages } from "@features/chat/components/PinnedMessages";
-import { MentionSuggestions } from "@features/chat/components/MentionSuggestions";
 import type { ChatChannel, ChatMessage } from "@features/chat/types";
 
 export default function ChatScreen() {
@@ -28,8 +26,6 @@ export default function ChatScreen() {
   const [showAttachments, setShowAttachments] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [showPinned, setShowPinned] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState("");
 
   const { channels, createChannel, creating, createError } = useChannels();
 
@@ -65,7 +61,7 @@ export default function ChatScreen() {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const handleSelectChannel = useCallback((ch: ChatChannel) => { setActiveChannel(ch); setShowPinned(false); }, []);
+  const handleSelectChannel = useCallback((ch: ChatChannel) => { setActiveChannel(ch); }, []);
   const handleCreateChannel = useCallback(async (name: string, desc: string, icon: string) => {
     const created = await createChannel(name, desc, icon);
     if (created) { setActiveChannel(created); setShowCreateModal(false); }
@@ -77,23 +73,6 @@ export default function ChatScreen() {
     setReactionTarget(null);
   }, [reactionTarget, toggleReaction]);
   const handleReply = useCallback((msg: ChatMessage) => startReply(msg), [startReply]);
-
-  // Mention suggestions filtering
-  const mentionSuggestions = useMemo(() => {
-    if (!mentionQuery) return [];
-    return members.filter((m) => m.name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5);
-  }, [mentionQuery, members]);
-
-  const handleTextChange = useCallback((text: string) => {
-    // Detect @mention in progress
-    const match = text.match(/@(\w*)$/);
-    setMentionQuery(match ? match[1] ?? "" : "");
-  }, []);
-
-  const handleMentionSelect = useCallback((member: { id: string; name: string }) => {
-    setMentionQuery("");
-    // The ChatInput will need to append the mention — for now we trigger the send with mention
-  }, []);
 
   return (
     <KeyboardAvoidingView
@@ -116,9 +95,6 @@ export default function ChatScreen() {
           <TouchableOpacity onPress={() => setShowSearch(true)} activeOpacity={0.7} style={styles.headerBtn}>
             <Ionicons name="search-outline" size={18} color={colors.runway[500]} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowPinned(!showPinned)} activeOpacity={0.7} style={styles.headerBtn}>
-            <Ionicons name="pin-outline" size={18} color={colors.amber[500]} />
-          </TouchableOpacity>
           <OnlineMembers members={onlineMembers} />
         </View>
       </View>
@@ -130,9 +106,6 @@ export default function ChatScreen() {
         onSelectChannel={handleSelectChannel}
         onCreateChannel={() => setShowCreateModal(true)}
       />
-
-      {/* Pinned messages */}
-      <PinnedMessages channelId={channelId} visible={showPinned} onClose={() => setShowPinned(false)} />
 
       {/* Message list */}
       <MessageList
@@ -154,9 +127,6 @@ export default function ChatScreen() {
         onPin={togglePin}
         onEdit={startEdit}
       />
-
-      {/* Mention suggestions */}
-      <MentionSuggestions suggestions={mentionSuggestions} onSelect={handleMentionSelect} />
 
       {/* Reply preview */}
       {replyingTo && <ReplyPreview message={replyingTo} onCancel={cancelReply} />}
@@ -201,7 +171,6 @@ export default function ChatScreen() {
                   onStopTyping={onStopTyping}
                   sending={sending}
                   placeholder={`Message #${activeChannel?.name ?? "general"}...`}
-                  onTextChange={handleTextChange}
                 />
               </View>
             </View>

@@ -53,7 +53,7 @@ export default function TeamScreen() {
 
           <View style={styles.proBanner}>
             <Ionicons name="lock-closed" size={16} color={colors.amber[600]} />
-            <Text style={styles.proText}>Available on Team plan ($29.99/month)</Text>
+            <Text style={styles.proText}>Available on Team plan (₱1,499/month)</Text>
           </View>
         </View>
       </ScrollView>

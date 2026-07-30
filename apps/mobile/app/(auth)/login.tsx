@@ -18,7 +18,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Animated, { FadeInUp, FadeIn } from "react-native-reanimated";
 import * as SecureStore from "expo-secure-store";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "@features/auth/hooks/useAuth";
+import { supabase } from "@core/network";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
 
@@ -52,6 +55,37 @@ export default function LoginScreen() {
       } catch { /* ignore */ }
     })();
   }, []);
+
+  async function handleGoogleSignIn() {
+    try {
+      setLocalError(null);
+      const redirectUrl = Linking.createURL("/(auth)/callback");
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (oauthError || !data.url) {
+        setLocalError("Failed to start Google sign-in.");
+        return;
+      }
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      if (result.type === "success" && result.url) {
+        // Extract tokens from the URL
+        const url = new URL(result.url);
+        const params = new URLSearchParams(url.hash.substring(1)); // tokens are in hash fragment
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        if (accessToken) {
+          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken ?? "" });
+        }
+      }
+    } catch {
+      setLocalError("Google sign-in was cancelled or failed.");
+    }
+  }
 
   async function handleSignIn() {
     setLocalError(null);
@@ -153,7 +187,15 @@ export default function LoginScreen() {
                   <Text style={styles.rememberText}>Remember me</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => {
-                  Alert.alert("Reset Password", "Password reset is not yet available. Contact your administrator.", [{ text: "OK" }]);
+                  if (!email.trim()) { Alert.alert("Enter Email", "Please enter your email address first, then tap Forgot Password."); return; }
+                  Alert.alert("Reset Password", `Send a password reset link to ${email.trim()}?`, [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Send", onPress: async () => {
+                      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: "fpl4flight://reset-password" });
+                      if (resetErr) Alert.alert("Error", resetErr.message);
+                      else Alert.alert("Email Sent", "Check your inbox for a password reset link.");
+                    }},
+                  ]);
                 }}>
                   <Text style={styles.forgotText}>Forgot password?</Text>
                 </TouchableOpacity>
@@ -175,6 +217,21 @@ export default function LoginScreen() {
                 ) : (
                   <Text style={styles.buttonText}>Sign in</Text>
                 )}
+              </PressableScale>
+
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Continue with Google */}
+              <PressableScale style={styles.googleButton} onPress={handleGoogleSignIn} disabled={isLoading}>
+                <View style={styles.googleIcon}>
+                  <Text style={styles.googleG}>G</Text>
+                </View>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
               </PressableScale>
 
               <View style={styles.footer}>
@@ -364,5 +421,52 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.brand[600],
     fontWeight: "600",
+  },
+  // Divider
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.runway[200],
+  },
+  dividerText: {
+    fontSize: fontSize.sm,
+    color: colors.runway[400],
+    paddingHorizontal: spacing.md,
+    fontWeight: "500",
+  },
+  // Google button
+  googleButton: {
+    height: INPUT_HEIGHT + 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.runway[200],
+    backgroundColor: colors.white,
+    gap: spacing.sm,
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleG: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#4285F4",
+  },
+  googleButtonText: {
+    fontSize: fontSize.base,
+    fontWeight: "600",
+    color: colors.runway[700],
   },
 });

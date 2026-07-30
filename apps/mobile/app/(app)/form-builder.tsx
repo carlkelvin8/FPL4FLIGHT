@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert,
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { FeatureGate } from "@shared/components/FeatureGate";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@core/network";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
@@ -32,6 +33,14 @@ const FIELD_TYPES: { type: FieldType; label: string; icon: string }[] = [
 ];
 
 export default function FormBuilderScreen() {
+  return (
+    <FeatureGate feature="form_builder" message="Create custom form templates with the Form Builder. Upgrade to Pro to unlock.">
+      <FormBuilderContent />
+    </FeatureGate>
+  );
+}
+
+function FormBuilderContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [templateName, setTemplateName] = useState("");

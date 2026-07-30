@@ -3,7 +3,7 @@ const { Client } = require("pg");
 const client = new Client({
   host: process.env.DB_HOST || "aws-0-ap-southeast-2.pooler.supabase.com",
   port: parseInt(process.env.DB_PORT || "6543"),
-  user: process.env.DB_USER || "postgres.tgzdztunswklbzbvbuxg",
+  user: process.env.DB_USER || "postgres.tajflaaiezwlbkgyfnkh",
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || "postgres",
   ssl: { rejectUnauthorized: false },
@@ -46,7 +46,7 @@ const migrations = [
   `CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();`,
   // Form templates managed separately (unique index on slug prevents duplicates)
   `CREATE UNIQUE INDEX IF NOT EXISTS form_templates_slug_unique ON form_templates(slug);`,
-  `CREATE TABLE IF NOT EXISTS community_messages (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, message TEXT NOT NULL, user_name TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW());`,
+  `CREATE TABLE IF NOT EXISTS community_messages (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, content TEXT NOT NULL, user_name TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW());`,
   `ALTER TABLE community_messages ENABLE ROW LEVEL SECURITY;`,
   `DO $$ BEGIN CREATE POLICY "cm1" ON community_messages FOR SELECT USING (true); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
   `DO $$ BEGIN CREATE POLICY "cm2" ON community_messages FOR INSERT WITH CHECK (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
@@ -103,6 +103,45 @@ const migrations = [
   `DO $$ BEGIN CREATE POLICY "dt2" ON duty_tracker FOR INSERT WITH CHECK (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
   `DO $$ BEGIN CREATE POLICY "dt3" ON duty_tracker FOR UPDATE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
   `DO $$ BEGIN CREATE POLICY "dt4" ON duty_tracker FOR DELETE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  // Rate limiting log table
+  `CREATE TABLE IF NOT EXISTS rate_limit_log (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, key TEXT NOT NULL, action TEXT NOT NULL, user_id UUID NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW());`,
+  `CREATE INDEX IF NOT EXISTS rate_limit_log_key_idx ON rate_limit_log(key, created_at);`,
+  // Push notification tokens
+  `CREATE TABLE IF NOT EXISTS push_tokens (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE, token TEXT NOT NULL, platform TEXT DEFAULT 'android', updated_at TIMESTAMPTZ DEFAULT NOW());`,
+  `ALTER TABLE push_tokens ENABLE ROW LEVEL SECURITY;`,
+  `DO $$ BEGIN CREATE POLICY "pt1" ON push_tokens FOR SELECT USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "pt2" ON push_tokens FOR INSERT WITH CHECK (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "pt3" ON push_tokens FOR UPDATE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "pt4" ON push_tokens FOR DELETE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  // Server-side constraints (defense-in-depth)
+  `ALTER TABLE community_messages ADD CONSTRAINT msg_content_length CHECK (length(content) <= 2000);`,
+  `ALTER TABLE flights ADD CONSTRAINT flight_number_length CHECK (length(flight_number) <= 10);`,
+  `ALTER TABLE aircraft ADD CONSTRAINT aircraft_id_length CHECK (length(aircraft_id) <= 10);`,
+  `ALTER TABLE pilot_logbook ADD CONSTRAINT logbook_hours_range CHECK (total_hours >= 0 AND total_hours <= 24);`,
+  `ALTER TABLE pilot_logbook ADD CONSTRAINT logbook_landings_range CHECK (landings >= 0 AND landings <= 100);`,
+  // Multi-tenancy: Organizations
+  `CREATE TABLE IF NOT EXISTS organizations (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, logo_url TEXT, plan TEXT DEFAULT 'team', max_members INTEGER DEFAULT 10, created_by UUID REFERENCES auth.users(id), created_at TIMESTAMPTZ DEFAULT NOW());`,
+  `CREATE TABLE IF NOT EXISTS org_members (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, role TEXT NOT NULL DEFAULT 'pilot', joined_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(org_id, user_id));`,
+  `CREATE TABLE IF NOT EXISTS org_invites (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, email TEXT NOT NULL, role TEXT DEFAULT 'pilot', invited_by UUID REFERENCES auth.users(id), created_at TIMESTAMPTZ DEFAULT NOW(), accepted_at TIMESTAMPTZ);`,
+  `ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;`,
+  `ALTER TABLE org_members ENABLE ROW LEVEL SECURITY;`,
+  `ALTER TABLE org_invites ENABLE ROW LEVEL SECURITY;`,
+  `DO $$ BEGIN CREATE POLICY "org1" ON organizations FOR SELECT USING (id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid())); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "org2" ON organizations FOR INSERT WITH CHECK (auth.uid() IS NOT NULL); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "om1" ON org_members FOR SELECT USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid())); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "om2" ON org_members FOR INSERT WITH CHECK (auth.uid() IS NOT NULL); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "om3" ON org_members FOR DELETE USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid() AND role = 'admin')); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "oi1" ON org_invites FOR SELECT USING (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid())); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "oi2" ON org_invites FOR INSERT WITH CHECK (org_id IN (SELECT org_id FROM org_members WHERE user_id = auth.uid() AND role IN ('admin','manager'))); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  // Add org_id to shared tables for fleet management
+  `ALTER TABLE aircraft ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organizations(id) ON DELETE SET NULL;`,
+  `ALTER TABLE flights ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES organizations(id) ON DELETE SET NULL;`,
+  // Profile license fields
+  `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS license_number TEXT;`,
+  `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS license_type TEXT;`,
+  `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS medical_expiry TEXT;`,
+  // Analytics events table
+  `CREATE TABLE IF NOT EXISTS analytics_events (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, event_name TEXT NOT NULL, properties JSONB DEFAULT '{}', user_id TEXT, created_at TIMESTAMPTZ DEFAULT NOW());`,
 ];
 
 async function run() {

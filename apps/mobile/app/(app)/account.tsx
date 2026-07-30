@@ -42,6 +42,20 @@ export default function AccountScreen() {
     if (profile?.fullName && !fullName) {
       setFullName(profile.fullName);
     }
+    // Load license fields from profile
+    async function loadLicenseData() {
+      try {
+        const { data: { user: u } } = await supabase.auth.getUser();
+        if (!u) return;
+        const { data } = await supabase.from("profiles").select("license_number, license_type, medical_expiry").eq("id", u.id).single();
+        if (data && mountedRef.current) {
+          if (data.license_number) setLicenseNumber(data.license_number);
+          if (data.license_type) setLicenseType(data.license_type);
+          if (data.medical_expiry) setMedicalExpiry(data.medical_expiry);
+        }
+      } catch { /* silently fail */ }
+    }
+    loadLicenseData();
   }, [profile?.fullName]);
 
   useEffect(() => {
@@ -69,7 +83,13 @@ export default function AccountScreen() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: fullName.trim(), updated_at: new Date().toISOString() })
+        .update({
+          full_name: fullName.trim(),
+          license_number: licenseNumber.trim() || null,
+          license_type: licenseType.trim() || null,
+          medical_expiry: medicalExpiry.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", user?.id);
       if (error) {
         Alert.alert("Error", error.message);
@@ -202,21 +222,33 @@ export default function AccountScreen() {
           </PressableScale>
         </View>
 
-        {/* Pilot ID Card */}
+        {/* Pilot ID Card — Premium Design */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>PILOT ID CARD</Text>
 
           <View style={styles.idCard}>
+            <View style={styles.idCardGradient} />
             <View style={styles.idCardHeader}>
-              <Text style={styles.idCardOrg}>FPL4FLIGHT</Text>
-              <Text style={styles.idCardType}>PILOT IDENTIFICATION</Text>
+              <View>
+                <Text style={styles.idCardOrg}>FPL4FLIGHT</Text>
+                <Text style={styles.idCardType}>DIGITAL PILOT CERTIFICATE</Text>
+              </View>
+              <View style={styles.idCardChip}>
+                <Ionicons name="airplane" size={14} color="#fff" />
+              </View>
             </View>
             <View style={styles.idCardBody}>
-              <View style={styles.idCardAvatar}>
-                <Text style={styles.idCardAvatarText}>{displayInitial}</Text>
+              <View style={styles.idCardAvatarWrap}>
+                <View style={styles.idCardAvatar}>
+                  <Text style={styles.idCardAvatarText}>{displayInitial}</Text>
+                </View>
+                <View style={styles.idCardVerified}>
+                  <Ionicons name="checkmark-circle" size={14} color="#34d399" />
+                </View>
               </View>
               <View style={styles.idCardInfo}>
                 <Text style={styles.idCardName}>{fullName || "Pilot Name"}</Text>
+                <Text style={styles.idCardRole}>{role.toUpperCase()} • VERIFIED</Text>
                 <Text style={styles.idCardDetail}>License: {licenseNumber || "—"}</Text>
                 <Text style={styles.idCardDetail}>Type: {licenseType || "PPL / CPL / ATPL"}</Text>
                 <Text style={styles.idCardDetail}>Medical: {medicalExpiry || "—"}</Text>
@@ -434,19 +466,24 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.red[100], backgroundColor: colors.white,
   },
   dangerBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.red[600] },
-  // Pilot ID Card
-  idCard: { borderWidth: 1, borderColor: colors.runway[200], borderRadius: borderRadius.md, overflow: "hidden", marginBottom: spacing.lg },
-  idCardHeader: { backgroundColor: colors.brand[600], padding: spacing.sm, alignItems: "center" },
-  idCardOrg: { fontSize: 10, fontWeight: "700", color: colors.white, letterSpacing: 1 },
-  idCardType: { fontSize: fontSize.xs, fontWeight: "600", color: colors.brand[200] },
-  idCardBody: { flexDirection: "row", padding: spacing.md, gap: spacing.md, backgroundColor: colors.white },
-  idCardAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.brand[100], alignItems: "center", justifyContent: "center" },
-  idCardAvatarText: { fontSize: 22, fontWeight: "700", color: colors.brand[600] },
+  // Pilot ID Card — Premium Dark Design
+  idCard: { borderRadius: 16, overflow: "hidden", marginBottom: spacing.lg, backgroundColor: "#1e1b4b", shadowColor: "#6366f1", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
+  idCardGradient: { height: 3, backgroundColor: "#818cf8" },
+  idCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+  idCardOrg: { fontSize: 10, fontWeight: "900", color: "#c7d2fe", letterSpacing: 3 },
+  idCardType: { fontSize: 8, fontWeight: "600", color: "#6366f1", marginTop: 2, letterSpacing: 0.8 },
+  idCardChip: { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(99,102,241,0.3)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(129,140,248,0.3)" },
+  idCardBody: { flexDirection: "row", padding: 16, gap: 14, alignItems: "center" },
+  idCardAvatarWrap: { position: "relative" },
+  idCardAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#4f46e5", alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: "rgba(129,140,248,0.5)" },
+  idCardAvatarText: { fontSize: 20, fontWeight: "700", color: "#fff" },
+  idCardVerified: { position: "absolute", bottom: -2, right: -2, backgroundColor: "#1e1b4b", borderRadius: 8, padding: 1 },
   idCardInfo: { flex: 1 },
-  idCardName: { fontSize: fontSize.base, fontWeight: "700", color: colors.runway[900], marginBottom: 4 },
-  idCardDetail: { fontSize: fontSize.xs, color: colors.runway[500], marginBottom: 2 },
-  idCardFooter: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: colors.runway[50], borderTopWidth: 1, borderTopColor: colors.runway[100] },
-  idCardFooterText: { fontSize: 9, fontWeight: "600", color: colors.runway[400] },
+  idCardName: { fontSize: 16, fontWeight: "800", color: "#ffffff", letterSpacing: -0.3 },
+  idCardRole: { fontSize: 9, fontWeight: "700", color: "#34d399", marginTop: 3, letterSpacing: 1 },
+  idCardDetail: { fontSize: 10, color: "#a5b4fc", marginTop: 3 },
+  idCardFooter: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, backgroundColor: "rgba(30,27,75,0.6)", borderTopWidth: 1, borderTopColor: "rgba(129,140,248,0.1)" },
+  idCardFooterText: { fontSize: 8, fontWeight: "600", color: "#6366f1" },
   // Documents
   docHint: { fontSize: fontSize.xs, color: colors.runway[400], marginBottom: spacing.md },
   docGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },

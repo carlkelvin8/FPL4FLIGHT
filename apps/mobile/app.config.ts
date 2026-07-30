@@ -4,6 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "FPL4FLIGHT",
   slug: "fpl4flight",
+  owner: "carllll",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
@@ -33,7 +34,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     "expo-router",
     "expo-secure-store",
-    "expo-audio",
     "expo-mail-composer",
     [
       "expo-sqlite",
@@ -49,7 +49,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     revenueCatKeyAndroid: process.env["REVENUECAT_API_KEY_ANDROID"],
     sentryDsn: process.env["SENTRY_DSN"],
     eas: {
-      projectId: "f22e6c2e-fe6e-4b23-af2e-0b8768dda46d",
+      projectId: "68b80506-301f-48d2-b869-fd07d8168fc7",
     },
   },
   scheme: "fpl4flight",

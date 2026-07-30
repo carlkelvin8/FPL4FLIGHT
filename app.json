@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "f22e6c2e-fe6e-4b23-af2e-0b8768dda46d"
+      }
+    },
+    "android": {
+      "package": "com.carllll.pilotforms"
+    }
+  }
+}

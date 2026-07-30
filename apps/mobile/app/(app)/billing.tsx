@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,6 +28,33 @@ export default function BillingScreen() {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   const plans = PLANS[cycle];
+
+  function handleUpgrade(planId: string, planName: string) {
+    if (planId === "free") return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      `Upgrade to ${planName}`,
+      "In-app purchases are processed through the Google Play Store. You'll be redirected to complete your subscription.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Continue",
+          onPress: () => {
+            // In production, this calls RevenueCat/Google Play Billing
+            // For now, show a placeholder message
+            Alert.alert(
+              "Coming Soon",
+              "Subscription purchases will be available once the app is published on the Play Store. Contact support@fpl4flight.io for early access.",
+              [
+                { text: "OK" },
+                { text: "Contact Support", onPress: () => Linking.openURL("mailto:support@fpl4flight.io?subject=Pro%20Subscription%20Inquiry") },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -92,6 +119,7 @@ export default function BillingScreen() {
               style={[styles.ctaBtn, plan.current && styles.ctaBtnCurrent, plan.popular && !plan.current && styles.ctaBtnPopular]}
               haptic
               disabled={plan.current}
+              onPress={() => handleUpgrade(plan.id, plan.name)}
             >
               <Text style={[styles.ctaText, plan.current && styles.ctaTextCurrent, plan.popular && !plan.current && styles.ctaTextPopular]}>
                 {plan.cta}

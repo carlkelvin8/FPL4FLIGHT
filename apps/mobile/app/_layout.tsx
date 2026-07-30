@@ -11,6 +11,7 @@ import { secureStorage, SESSION_KEY, AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from ".
 import { supabase } from "../src/core/network";
 import { colors } from "../src/shared/theme";
 import { ErrorBoundary as ErrorBoundaryClass } from "../src/shared/components/ErrorBoundary";
+import { startSyncManager } from "../src/core/sync-manager";
 const ErrorBoundary = ErrorBoundaryClass as any;
 
 const queryClient = new QueryClient({
@@ -61,7 +62,7 @@ function AuthSessionRestorer() {
           const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
           currentSession = result?.data?.session ?? null;
         } catch {
-          // Network failed or timeout — skip
+          // Network failed, timeout, or JWT error — just go to login
         }
 
         if (currentSession && currentSession.user && mounted) {
@@ -75,6 +76,7 @@ function AuthSessionRestorer() {
           });
           setUser({ id: su.id, email: su.email ?? "", role: "pilot" });
         } else {
+          // No session — clear tokens and go to login
           await secureStorage.delete(SESSION_KEY).catch(() => {});
           await secureStorage.delete(AUTH_TOKEN_KEY).catch(() => {});
           await secureStorage.delete(REFRESH_TOKEN_KEY).catch(() => {});
@@ -89,8 +91,8 @@ function AuthSessionRestorer() {
 
     restoreSession();
     
-    // Hard failsafe — never stay loading more than 3 seconds
-    const failsafe = setTimeout(() => { if (mounted) setLoading(false); }, 3000);
+    // Hard failsafe — never stay loading more than 2 seconds
+    const failsafe = setTimeout(() => { if (mounted) { setLoading(false); reset(); } }, 2000);
     
     return () => { mounted = false; clearTimeout(failsafe); };
   }, []);
@@ -114,6 +116,12 @@ function LoadingOverlay() {
 
 export default function RootLayout() {
   useProtectedRoute();
+
+  // Start sync manager for offline support
+  useEffect(() => {
+    const cleanup = startSyncManager();
+    return cleanup;
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

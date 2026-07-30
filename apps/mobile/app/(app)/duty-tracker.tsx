@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@core/network";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+import { FeatureGate } from "@shared/components/FeatureGate";
 
 interface DutyEntry {
   id: string;
@@ -27,6 +28,14 @@ const LIMITS = {
 };
 
 export default function DutyTrackerScreen() {
+  return (
+    <FeatureGate feature="duty_tracker" message="Track duty periods and FRMS compliance. Upgrade to Pro to unlock.">
+      <DutyTrackerContent />
+    </FeatureGate>
+  );
+}
+
+function DutyTrackerContent() {
   const insets = useSafeAreaInsets();
   const [entries, setEntries] = useState<DutyEntry[]>([]);
   const [loading, setLoading] = useState(true);

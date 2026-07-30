@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Platform,
+  View, Text, TextInput, StyleSheet, TouchableOpacity, Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 
@@ -103,7 +103,7 @@ export default function MapScreen() {
         <MapView
           ref={mapRef}
           style={StyleSheet.absoluteFillObject}
-          provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+          provider={undefined}
           showsUserLocation={false}
           showsCompass={false}
           showsScale={false}

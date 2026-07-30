@@ -4,15 +4,9 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import Constants from "expo-constants";
 
-const supabaseUrl: string =
-  (Constants.expoConfig?.extra?.supabaseUrl as string | undefined) ??
-  process.env["EXPO_PUBLIC_SUPABASE_URL"] ??
-  "";
-const supabaseAnonKey: string =
-  (Constants.expoConfig?.extra?.supabaseAnonKey as string | undefined) ??
-  process.env["EXPO_PUBLIC_SUPABASE_ANON_KEY"] ??
-  "";
+// Force new Supabase project - no fallback to Constants
+const supabaseUrl = "https://tajflaaiezwlbkgyfnkh.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhamZsYWFpZXp3bGJrZ3lmbmtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxOTY2NTUsImV4cCI6MjEwMDc3MjY1NX0.0-YkHZr5UM0eEp16eHrLa7-Vud9TNccwS0A_BgHA--g";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Switch, Alert, ActivityIndicator,
-  Modal, TouchableOpacity, Linking,
+  Modal, TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,7 +11,8 @@ import { useAuth } from "@features/auth/hooks/useAuth";
 import { useAuthStore } from "@features/auth/stores/authStore";
 import { useProfile } from "@features/forms/hooks/useProfile";
 import { supabase } from "@core/network";
-import { colors, spacing, borderRadius, fontSize, shadows } from "@shared/theme";
+import { isBiometricAvailable, isBiometricLockEnabled, enableBiometricLock, disableBiometricLock, authenticateWithBiometrics, getBiometricType } from "@core/biometrics";
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { Card } from "@shared/components/Card";
 import { PressableScale } from "@shared/components/PressableScale";
 
@@ -68,6 +69,9 @@ export default function SettingsScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState("Biometric");
   const [email, setEmail] = useState(user?.email || "");
   const [selectedAvatar, setSelectedAvatar] = useState<typeof PILOT_AVATARS[number]>(PILOT_AVATARS[0]);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -76,6 +80,16 @@ export default function SettingsScreen() {
     let mounted = true;
     async function init() {
       try {
+        // Check biometric availability
+        const bioAvail = await isBiometricAvailable();
+        if (mounted) setBiometricAvailable(bioAvail);
+        if (bioAvail) {
+          const type = await getBiometricType();
+          if (mounted) setBiometricType(type);
+          const enabled = await isBiometricLockEnabled();
+          if (mounted) setBiometricEnabled(enabled);
+        }
+
         const { data } = await supabase.auth.getUser();
         if (!mounted) return;
         if (data?.user?.email) setEmail(data.user.email);
@@ -294,6 +308,37 @@ export default function SettingsScreen() {
             thumbColor={offlineMode ? colors.brand[600] : colors.runway[400]}
           />
         </View>
+        {biometricAvailable && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: "#f0fdf4" }]}>
+                  <Ionicons name="finger-print-outline" size={16} color="#16a34a" />
+                </View>
+                <View>
+                  <Text style={styles.toggleLabel}>{biometricType} Lock</Text>
+                  <Text style={styles.toggleDesc}>Require authentication on launch</Text>
+                </View>
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={async () => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (!biometricEnabled) {
+                    const authenticated = await authenticateWithBiometrics("Verify to enable biometric lock");
+                    if (authenticated) { await enableBiometricLock(); setBiometricEnabled(true); }
+                  } else {
+                    await disableBiometricLock();
+                    setBiometricEnabled(false);
+                  }
+                }}
+                trackColor={{ false: colors.runway[300], true: "#86efac" }}
+                thumbColor={biometricEnabled ? "#16a34a" : colors.runway[400]}
+              />
+            </View>
+          </>
+        )}
       </Card>
 
       {/* Account Links */}

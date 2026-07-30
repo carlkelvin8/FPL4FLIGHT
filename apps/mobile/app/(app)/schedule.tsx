@@ -11,7 +11,7 @@ import { colors, spacing, borderRadius, fontSize, shadows } from "@shared/theme"
 import { flightRepository, type FlightData, type CreateFlightDto } from "@features/flights/repositories/FlightRepository";
 import { formatDateStr, getTodayStr, getTomorrowStr, getCalendarDays, MONTH_NAMES, getFlag } from "@shared/utils";
 import { FlightCard as FlightCardComponent } from "@features/flights/components/FlightCard";
-const FlightCard = FlightCardComponent as any;
+const FlightCard = FlightCardComponent as React.ComponentType<any>;
 import { type FlightSchedule, type FlightStatus, STATUS_CONFIG } from "@features/flights/types";
 
 interface FlightFormData {
@@ -158,19 +158,22 @@ export default function ScheduleScreen() {
       await loadFlights();
       setShowForm(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Check if saved offline
+      const { getIsOnline } = require("@core/sync-manager");
+      if (!getIsOnline()) {
+        Alert.alert("Saved as Draft", "Flight saved locally. It will sync automatically when you're back online.", [{ text: "OK" }]);
+      }
       playSuccessAnimation();
     } catch {
       Alert.alert("Error", "Failed to add flight.");
     }
   }
 
+  const [selectedFlight, setSelectedFlight] = useState<FlightSchedule | null>(null);
+
   function handleFlightPress(flight: FlightSchedule) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const status = STATUS_CONFIG[flight.status];
-    Alert.alert(
-      flight.flightNumber,
-      `${getFlag(flight.departure.country)} ${flight.departure.code} → ${getFlag(flight.arrival.country)} ${flight.arrival.code}\n\nAircraft: ${flight.aircraft}\nDate: ${flight.date}\nDeparture: ${flight.departure.time}\nArrival: ${flight.arrival.time}\nStatus: ${status.label}${flight.gate ? `\nGate: ${flight.gate}` : ""}${flight.pilotInCommand ? `\nPIC: ${flight.pilotInCommand}` : ""}${flight.remarks ? `\nRemarks: ${flight.remarks}` : ""}`,
-    );
+    setSelectedFlight(flight);
   }
 
   function handleDeleteFlight(id: string) {
@@ -275,6 +278,68 @@ export default function ScheduleScreen() {
           </Animated.Text>
         </Animated.View>
       )}
+
+      {/* Flight Detail Modal */}
+      <Modal visible={!!selectedFlight} transparent animationType="fade">
+        <TouchableOpacity style={styles.detailOverlay} activeOpacity={1} onPress={() => setSelectedFlight(null)}>
+          <TouchableOpacity activeOpacity={1} style={styles.detailModal}>
+            {selectedFlight && (() => {
+              const s = STATUS_CONFIG[selectedFlight.status];
+              return (<>
+                <View style={styles.detailHandle} />
+                {/* Route Header */}
+                <View style={styles.detailRouteRow}>
+                  <View style={styles.detailAirport}>
+                    <Text style={styles.detailFlag}>{getFlag(selectedFlight.departure.country)}</Text>
+                    <Text style={styles.detailCode}>{selectedFlight.departure.code}</Text>
+                    <Text style={styles.detailCity}>{selectedFlight.departure.city || "Departure"}</Text>
+                    <Text style={styles.detailTime}>{selectedFlight.departure.time}</Text>
+                  </View>
+                  <View style={styles.detailLine}>
+                    <View style={styles.detailDot} />
+                    <View style={styles.detailDash} />
+                    <Ionicons name="airplane" size={18} color={colors.brand[600]} />
+                    <View style={styles.detailDash} />
+                    <View style={styles.detailDot} />
+                  </View>
+                  <View style={[styles.detailAirport, { alignItems: "flex-end" }]}>
+                    <Text style={styles.detailFlag}>{getFlag(selectedFlight.arrival.country)}</Text>
+                    <Text style={styles.detailCode}>{selectedFlight.arrival.code}</Text>
+                    <Text style={styles.detailCity}>{selectedFlight.arrival.city || "Arrival"}</Text>
+                    <Text style={styles.detailTime}>{selectedFlight.arrival.time}</Text>
+                  </View>
+                </View>
+                {/* Flight Number & Status */}
+                <View style={styles.detailInfoRow}>
+                  <Text style={styles.detailFlightNum}>{selectedFlight.flightNumber}</Text>
+                  <View style={[styles.detailStatusBadge, { backgroundColor: s.bg }]}>
+                    <View style={[styles.detailStatusDot, { backgroundColor: s.color }]} />
+                    <Text style={[styles.detailStatusText, { color: s.color }]}>{s.label}</Text>
+                  </View>
+                </View>
+                {/* Details Grid */}
+                <View style={styles.detailGrid}>
+                  <View style={styles.detailGridItem}><Ionicons name="calendar-outline" size={16} color={colors.runway[400]} /><Text style={styles.detailGridLabel}>Date</Text><Text style={styles.detailGridValue}>{selectedFlight.date}</Text></View>
+                  <View style={styles.detailGridItem}><Ionicons name="airplane-outline" size={16} color={colors.runway[400]} /><Text style={styles.detailGridLabel}>Aircraft</Text><Text style={styles.detailGridValue}>{selectedFlight.aircraft || "—"}</Text></View>
+                  {selectedFlight.gate && <View style={styles.detailGridItem}><Ionicons name="navigate-outline" size={16} color={colors.runway[400]} /><Text style={styles.detailGridLabel}>Gate</Text><Text style={styles.detailGridValue}>{selectedFlight.gate}</Text></View>}
+                  {selectedFlight.pilotInCommand && <View style={styles.detailGridItem}><Ionicons name="person-outline" size={16} color={colors.runway[400]} /><Text style={styles.detailGridLabel}>PIC</Text><Text style={styles.detailGridValue}>{selectedFlight.pilotInCommand}</Text></View>}
+                </View>
+                {selectedFlight.remarks && <View style={styles.detailRemarks}><Text style={styles.detailRemarksLabel}>Remarks</Text><Text style={styles.detailRemarksText}>{selectedFlight.remarks}</Text></View>}
+                {/* Actions */}
+                <View style={styles.detailActions}>
+                  <TouchableOpacity style={styles.detailDeleteBtn} onPress={() => { setSelectedFlight(null); handleDeleteFlight(selectedFlight.id); }}>
+                    <Ionicons name="trash-outline" size={18} color={colors.red[500]} />
+                    <Text style={styles.detailDeleteText}>Delete</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.detailCloseBtn} onPress={() => setSelectedFlight(null)}>
+                    <Text style={styles.detailCloseText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </>);
+            })()}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -635,6 +700,36 @@ const styles = StyleSheet.create({
   successOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)", alignItems: "center", justifyContent: "center", zIndex: 999 },
   successCircle: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.green[500], alignItems: "center", justifyContent: "center", shadowColor: colors.green[500], shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
   successText: { fontSize: fontSize.lg, fontWeight: "700", color: colors.white, marginTop: spacing.md },
+  // Flight Detail Modal
+  detailOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  detailModal: { backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: spacing.lg, paddingBottom: 40 },
+  detailHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.runway[300], alignSelf: "center", marginBottom: spacing.lg },
+  detailRouteRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.lg },
+  detailAirport: { flex: 1 },
+  detailFlag: { fontSize: 28, marginBottom: 4 },
+  detailCode: { fontSize: 22, fontWeight: "800", color: colors.runway[900], letterSpacing: 1 },
+  detailCity: { fontSize: fontSize.xs, color: colors.runway[500], marginTop: 2 },
+  detailTime: { fontSize: fontSize.base, fontWeight: "700", color: colors.brand[600], marginTop: 4 },
+  detailLine: { flexDirection: "row", alignItems: "center", flex: 1.5, paddingHorizontal: spacing.xs },
+  detailDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.runway[300] },
+  detailDash: { flex: 1, height: 2, backgroundColor: colors.runway[200], marginHorizontal: 2 },
+  detailInfoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.md, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.runway[100] },
+  detailFlightNum: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900], letterSpacing: 0.5 },
+  detailStatusBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  detailStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  detailStatusText: { fontSize: fontSize.xs, fontWeight: "700" },
+  detailGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.md },
+  detailGridItem: { backgroundColor: colors.runway[50], borderRadius: borderRadius.md, padding: spacing.md, width: "47%", gap: 4 },
+  detailGridLabel: { fontSize: 10, fontWeight: "600", color: colors.runway[400] },
+  detailGridValue: { fontSize: fontSize.base, fontWeight: "700", color: colors.runway[900] },
+  detailRemarks: { backgroundColor: colors.runway[50], borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md },
+  detailRemarksLabel: { fontSize: 10, fontWeight: "600", color: colors.runway[400], marginBottom: 4 },
+  detailRemarksText: { fontSize: fontSize.sm, color: colors.runway[700] },
+  detailActions: { flexDirection: "row", gap: spacing.sm },
+  detailDeleteBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, paddingVertical: 14, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100], backgroundColor: colors.red[50] },
+  detailDeleteText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.red[500] },
+  detailCloseBtn: { flex: 2, alignItems: "center", justifyContent: "center", paddingVertical: 14, borderRadius: borderRadius.md, backgroundColor: colors.runway[900] },
+  detailCloseText: { fontSize: fontSize.sm, fontWeight: "700", color: colors.white },
 });
 
 const formStyles = StyleSheet.create({

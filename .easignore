@@ -1,0 +1,18 @@
+# EAS Build ignore file
+# Include packages/shared (needed for build)
+# Ignore heavy/unnecessary directories
+
+# Build outputs
+apps/admin/.next
+apps/admin/node_modules
+.turbo/cache
+
+# Android build artifacts (will be regenerated)
+apps/mobile/android
+apps/mobile/ios
+
+# Git
+.git
+
+# Turbo cache
+.turbo

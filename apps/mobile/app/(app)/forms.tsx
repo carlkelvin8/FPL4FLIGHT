@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, FlatList, StyleSheet, RefreshControl,
-  Alert, Modal, TouchableOpacity, Animated, Dimensions,
+  Alert, Modal, TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -142,18 +142,18 @@ export default function FormsScreen() {
 
       {/* Dashboard Summary Cards */}
       <View style={styles.dashRow}>
-        <View style={[styles.dashCard, { backgroundColor: colors.brand[50] }]}>
+        <TouchableOpacity style={[styles.dashCard, { backgroundColor: colors.brand[50] }, filterBy === "all" && styles.dashCardActive]} onPress={() => { setFilterBy("all"); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} activeOpacity={0.7}>
           <Text style={[styles.dashNum, { color: colors.brand[600] }]}>{stats.total}</Text>
           <Text style={styles.dashLabel}>Total</Text>
-        </View>
-        <View style={[styles.dashCard, { backgroundColor: colors.green[50] }]}>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.dashCard, { backgroundColor: colors.green[50] }, filterBy === "completed" && styles.dashCardActive]} onPress={() => { setFilterBy("completed"); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} activeOpacity={0.7}>
           <Text style={[styles.dashNum, { color: colors.green[600] }]}>{stats.completedToday}</Text>
           <Text style={styles.dashLabel}>Done Today</Text>
-        </View>
-        <View style={[styles.dashCard, { backgroundColor: colors.amber[50] }]}>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.dashCard, { backgroundColor: colors.amber[50] }, filterBy === "draft" && styles.dashCardActive]} onPress={() => { setFilterBy("draft"); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} activeOpacity={0.7}>
           <Text style={[styles.dashNum, { color: colors.amber[600] }]}>{stats.drafts}</Text>
           <Text style={styles.dashLabel}>Drafts</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Search */}
@@ -312,7 +312,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5 },
   // Dashboard
   dashRow: { flexDirection: "row", paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.md },
-  dashCard: { flex: 1, borderRadius: borderRadius.md, padding: spacing.sm, alignItems: "center" },
+  dashCard: { flex: 1, borderRadius: borderRadius.md, padding: spacing.sm, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
+  dashCardActive: { borderColor: colors.brand[400] },
   dashNum: { fontSize: fontSize["2xl"], fontWeight: "700" },
   dashLabel: { fontSize: 10, fontWeight: "600", color: colors.runway[500], marginTop: 2 },
   // Search

@@ -1,50 +1,29 @@
+// Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 
+// Find the project and workspace directories
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-// 1. Watch all files in the monorepo
+// 1. Watch all files within the monorepo
 config.watchFolders = [monorepoRoot];
 
-// 2. Resolve from mobile's node_modules first, then root
+// 2. Let Metro know where to resolve packages and in what order
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-// 3. Force critical packages to ALWAYS resolve from mobile's node_modules
-//    This prevents React 18 (admin/Next.js) from being used instead of React 19 (mobile/RN 0.81)
-const forcedModules = {
-  react: path.resolve(projectRoot, "node_modules/react"),
-  "react/jsx-runtime": path.resolve(projectRoot, "node_modules/react/jsx-runtime"),
-  "react/jsx-dev-runtime": path.resolve(projectRoot, "node_modules/react/jsx-dev-runtime"),
-  "react-dom": path.resolve(projectRoot, "node_modules/react-dom"),
-};
+// 3. Force Metro to resolve (sub)dependencies only from the `nodeModulesPaths`
+config.resolver.disableHierarchicalLookup = true;
 
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // If someone requires 'react' or 'react-dom', always use mobile's version
-  if (forcedModules[moduleName]) {
-    return {
-      filePath: require.resolve(forcedModules[moduleName]),
-      type: "sourceFile",
-    };
-  }
-
-  // For bare 'react' imports from any package (even deep in node_modules)
-  if (moduleName === "react" || moduleName === "react-dom") {
-    return {
-      filePath: require.resolve(
-        path.resolve(projectRoot, "node_modules", moduleName)
-      ),
-      type: "sourceFile",
-    };
-  }
-
-  // Default resolution for everything else
-  return context.resolveRequest(context, moduleName, platform);
+// 4. Resolve @pilotforms/shared to local inlined copy (for EAS builds)
+config.resolver.extraNodeModules = {
+  ...config.resolver.extraNodeModules,
+  "@pilotforms/shared": path.resolve(projectRoot, "src/shared-pkg"),
 };
 
 module.exports = config;
