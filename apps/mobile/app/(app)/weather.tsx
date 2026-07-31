@@ -12,13 +12,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
 import { useWeather } from "@features/weather/hooks/useWeather";
 import { MetarCard } from "@features/weather/components/MetarCard";
 
 export default function WeatherScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const {
     station,
     setStation,
@@ -41,6 +43,8 @@ export default function WeatherScreen() {
       searchStation(station);
     }
   }, [station, searchStation]);
+
+  const styles = createStyles(theme);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -73,11 +77,11 @@ export default function WeatherScreen() {
         {/* Search input */}
         <View style={styles.searchRow}>
           <View style={styles.searchInputWrapper}>
-            <Ionicons name="search" size={18} color={colors.runway[400]} />
+            <Ionicons name="search" size={18} color={theme.textMuted} />
             <TextInput
               style={styles.searchInput}
               placeholder="ICAO code (e.g. KJFK)"
-              placeholderTextColor={colors.runway[400]}
+              placeholderTextColor={theme.textMuted}
               value={station}
               onChangeText={setStation}
               autoCapitalize="characters"
@@ -155,7 +159,7 @@ export default function WeatherScreen() {
               <Ionicons
                 name={showTaf ? "chevron-up" : "chevron-down"}
                 size={16}
-                color={colors.runway[400]}
+                color={theme.textMuted}
               />
             </TouchableOpacity>
 
@@ -187,7 +191,7 @@ export default function WeatherScreen() {
         {!metar && !metarLoading && !metarError && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconBg}>
-              <Ionicons name="airplane-outline" size={40} color={colors.runway[400]} />
+              <Ionicons name="airplane-outline" size={40} color={theme.textMuted} />
             </View>
             <Text style={styles.emptyTitle}>Enter an ICAO code</Text>
             <Text style={styles.emptySub}>
@@ -200,10 +204,11 @@ export default function WeatherScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.runway[50],
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: "row",
@@ -211,9 +216,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.runway[200],
+    borderBottomColor: theme.border,
   },
   headerLeft: {
     flexDirection: "row",
@@ -231,12 +236,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: fontSize.lg,
     fontWeight: "700",
-    color: colors.runway[900],
+    color: theme.textPrimary,
     letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 12,
-    color: colors.runway[400],
+    color: theme.textMuted,
   },
   scroll: {
     flex: 1,
@@ -257,17 +262,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: colors.runway[200],
+    borderColor: theme.border,
     paddingHorizontal: spacing.md,
     height: 44,
   },
   searchInput: {
     flex: 1,
     fontSize: fontSize.base,
-    color: colors.runway[800],
+    color: theme.textPrimary,
     fontWeight: "600",
     letterSpacing: 1,
   },
@@ -280,7 +285,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   searchBtnDisabled: {
-    backgroundColor: colors.runway[200],
+    backgroundColor: theme.border,
   },
   chipsScroll: {
     marginBottom: spacing.lg,
@@ -293,9 +298,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: colors.runway[200],
+    borderColor: theme.border,
     marginRight: spacing.sm,
   },
   chipActive: {
@@ -305,7 +310,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: fontSize.sm,
     fontWeight: "700",
-    color: colors.runway[600],
+    color: theme.textSecondary,
     letterSpacing: 0.5,
   },
   chipTextActive: {
@@ -318,7 +323,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: fontSize.sm,
-    color: colors.runway[400],
+    color: theme.textMuted,
   },
   errorContainer: {
     flexDirection: "row",
@@ -344,11 +349,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.runway[200],
+    borderColor: theme.border,
   },
   tafToggleLeft: {
     flexDirection: "row",
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
   tafToggleText: {
     fontSize: fontSize.sm,
     fontWeight: "600",
-    color: colors.runway[700],
+    color: theme.textSecondary,
   },
   tafLoading: {
     paddingVertical: spacing.md,
@@ -384,7 +389,7 @@ const styles = StyleSheet.create({
   },
   tafValid: {
     fontSize: 10,
-    color: colors.runway[400],
+    color: theme.textMuted,
     marginTop: spacing.sm,
   },
   emptyState: {
@@ -395,7 +400,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: colors.runway[100],
+    backgroundColor: theme.borderLight,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.md,
@@ -403,11 +408,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: fontSize.lg,
     fontWeight: "600",
-    color: colors.runway[700],
+    color: theme.textSecondary,
   },
   emptySub: {
     fontSize: fontSize.sm,
-    color: colors.runway[400],
+    color: theme.textMuted,
     marginTop: spacing.xs,
     textAlign: "center",
     paddingHorizontal: spacing["2xl"],

@@ -11,11 +11,14 @@ import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "@features/auth/stores/authStore";
 import { useProfile } from "@features/forms/hooks/useProfile";
 import { supabase } from "@core/network";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { APP_NAME } from "@shared/constants";
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { profile, isLoading: profileLoading, refetch } = useProfile();
@@ -32,6 +35,7 @@ export default function AccountScreen() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseType, setLicenseType] = useState("");
   const [medicalExpiry, setMedicalExpiry] = useState("");
+  const styles = createStyles(theme);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -183,7 +187,7 @@ export default function AccountScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Email</Text>
             <View style={styles.readOnlyField}>
-              <Ionicons name="mail-outline" size={16} color={colors.runway[400]} />
+              <Ionicons name="mail-outline" size={16} color={theme.textMuted} />
               <Text style={styles.readOnlyText}>{email || "Loading..."}</Text>
               <Ionicons name="lock-closed" size={12} color={colors.runway[300]} />
             </View>
@@ -192,7 +196,7 @@ export default function AccountScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Full Name</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <Ionicons name="person-outline" size={16} color={theme.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={fullName}
@@ -230,7 +234,7 @@ export default function AccountScreen() {
             <View style={styles.idCardGradient} />
             <View style={styles.idCardHeader}>
               <View>
-                <Text style={styles.idCardOrg}>FPL4FLIGHT</Text>
+                <Text style={styles.idCardOrg}>{APP_NAME}</Text>
                 <Text style={styles.idCardType}>DIGITAL PILOT CERTIFICATE</Text>
               </View>
               <View style={styles.idCardChip}>
@@ -264,7 +268,7 @@ export default function AccountScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>License Number</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="card-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <Ionicons name="card-outline" size={16} color={theme.textMuted} style={styles.inputIcon} />
               <TextInput style={styles.input} value={licenseNumber} onChangeText={setLicenseNumber} placeholder="e.g. 10414CPL/C172" placeholderTextColor={colors.runway[300]} />
             </View>
           </View>
@@ -272,7 +276,7 @@ export default function AccountScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>License Type</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="ribbon-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <Ionicons name="ribbon-outline" size={16} color={theme.textMuted} style={styles.inputIcon} />
               <TextInput style={styles.input} value={licenseType} onChangeText={setLicenseType} placeholder="PPL / CPL / ATPL" placeholderTextColor={colors.runway[300]} />
             </View>
           </View>
@@ -280,7 +284,7 @@ export default function AccountScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Medical Expiry</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="medkit-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <Ionicons name="medkit-outline" size={16} color={theme.textMuted} style={styles.inputIcon} />
               <TextInput style={styles.input} value={medicalExpiry} onChangeText={setMedicalExpiry} placeholder="e.g. 2027-06-30" placeholderTextColor={colors.runway[300]} />
             </View>
           </View>
@@ -311,7 +315,7 @@ export default function AccountScreen() {
                   setPilotIds((prev) => [...prev, result.assets[0]!.uri]);
                 }
               }} activeOpacity={0.7}>
-                <Ionicons name="add" size={28} color={colors.runway[400]} />
+                <Ionicons name="add" size={28} color={theme.textMuted} />
                 <Text style={styles.docAddText}>Add ID</Text>
               </TouchableOpacity>
             )}
@@ -325,7 +329,7 @@ export default function AccountScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>New Password</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="key-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <Ionicons name="key-outline" size={16} color={theme.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={newPassword}
@@ -337,7 +341,7 @@ export default function AccountScreen() {
                 editable={!changingPassword}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.runway[400]} />
+                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
           </View>
@@ -345,7 +349,7 @@ export default function AccountScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Confirm Password</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={16} color={colors.runway[400]} style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={16} color={theme.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={confirmPassword}
@@ -397,18 +401,19 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   // Header
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: spacing.md, paddingVertical: 14,
-    backgroundColor: colors.white, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.runway[200],
+    backgroundColor: theme.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border,
   },
   backBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900] },
+  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: theme.textPrimary },
   // Hero
-  heroSection: { alignItems: "center", paddingVertical: spacing.xl, backgroundColor: colors.white, marginBottom: spacing.sm },
+  heroSection: { alignItems: "center", paddingVertical: spacing.xl, backgroundColor: theme.surface, marginBottom: spacing.sm },
   avatarLarge: {
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center",
@@ -416,7 +421,7 @@ const styles = StyleSheet.create({
     shadowColor: colors.brand[600], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
   avatarText: { fontSize: 28, fontWeight: "700", color: colors.white },
-  heroName: { fontSize: fontSize.xl, fontWeight: "700", color: colors.runway[900], marginBottom: 6 },
+  heroName: { fontSize: fontSize.xl, fontWeight: "700", color: theme.textPrimary, marginBottom: 6 },
   rolePill: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: colors.brand[50], paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12,
@@ -424,29 +429,29 @@ const styles = StyleSheet.create({
   roleText: { fontSize: fontSize.xs, fontWeight: "600", color: colors.brand[600], textTransform: "capitalize" },
   // Card
   card: {
-    backgroundColor: colors.white, marginHorizontal: spacing.md, marginTop: spacing.md,
+    backgroundColor: theme.surface, marginHorizontal: spacing.md, marginTop: spacing.md,
     borderRadius: borderRadius.lg, padding: spacing.lg,
     shadowColor: colors.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
-  cardLabel: { fontSize: 11, fontWeight: "700", color: colors.runway[400], letterSpacing: 1, marginBottom: spacing.lg },
+  cardLabel: { fontSize: 11, fontWeight: "700", color: theme.textMuted, letterSpacing: 1, marginBottom: spacing.lg },
   // Fields
   fieldGroup: { marginBottom: spacing.md },
-  fieldLabel: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[600], textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
+  fieldLabel: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
   readOnlyField: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm,
-    backgroundColor: colors.runway[50], borderRadius: borderRadius.md,
+    backgroundColor: theme.background, borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md, paddingVertical: 14,
-    borderWidth: 1, borderColor: colors.runway[100],
+    borderWidth: 1, borderColor: theme.borderLight,
   },
-  readOnlyText: { flex: 1, fontSize: fontSize.base, color: colors.runway[500] },
+  readOnlyText: { flex: 1, fontSize: fontSize.base, color: theme.textMuted },
   inputWrapper: {
     flexDirection: "row", alignItems: "center",
-    backgroundColor: colors.runway[50], borderRadius: borderRadius.md,
-    borderWidth: 1, borderColor: colors.runway[200],
+    backgroundColor: theme.background, borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: theme.border,
     paddingHorizontal: spacing.md,
   },
   inputIcon: { marginRight: spacing.sm },
-  input: { flex: 1, fontSize: fontSize.base, color: colors.runway[900], paddingVertical: 14 },
+  input: { flex: 1, fontSize: fontSize.base, color: theme.textPrimary, paddingVertical: 14 },
   hintError: { fontSize: fontSize.xs, color: colors.red[600], marginTop: 6 },
   // Buttons
   primaryBtn: {
@@ -459,11 +464,11 @@ const styles = StyleSheet.create({
   primaryBtnText: { fontSize: fontSize.base, fontWeight: "600", color: colors.white },
   // Danger
   dangerCard: { borderWidth: 1, borderColor: colors.red[100] },
-  dangerText: { fontSize: fontSize.sm, color: colors.runway[500], lineHeight: 20, marginBottom: spacing.md },
+  dangerText: { fontSize: fontSize.sm, color: theme.textMuted, lineHeight: 20, marginBottom: spacing.md },
   dangerBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm,
     paddingVertical: 12, borderRadius: borderRadius.md,
-    borderWidth: 1, borderColor: colors.red[100], backgroundColor: colors.white,
+    borderWidth: 1, borderColor: colors.red[100], backgroundColor: theme.surface,
   },
   dangerBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.red[600] },
   // Pilot ID Card — Premium Dark Design
@@ -485,11 +490,11 @@ const styles = StyleSheet.create({
   idCardFooter: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 8, backgroundColor: "rgba(30,27,75,0.6)", borderTopWidth: 1, borderTopColor: "rgba(129,140,248,0.1)" },
   idCardFooterText: { fontSize: 8, fontWeight: "600", color: "#6366f1" },
   // Documents
-  docHint: { fontSize: fontSize.xs, color: colors.runway[400], marginBottom: spacing.md },
+  docHint: { fontSize: fontSize.xs, color: theme.textMuted, marginBottom: spacing.md },
   docGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   docSlot: { width: 90, height: 90, borderRadius: borderRadius.sm, overflow: "hidden", position: "relative" },
   docImage: { width: "100%", height: "100%", borderRadius: borderRadius.sm },
   docRemoveBtn: { position: "absolute", top: 2, right: 2 },
-  docAddSlot: { width: 90, height: 90, borderRadius: borderRadius.sm, borderWidth: 1.5, borderColor: colors.runway[200], borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
-  docAddText: { fontSize: 9, fontWeight: "600", color: colors.runway[400], marginTop: 2 },
+  docAddSlot: { width: 90, height: 90, borderRadius: borderRadius.sm, borderWidth: 1.5, borderColor: theme.border, borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  docAddText: { fontSize: 9, fontWeight: "600", color: theme.textMuted, marginTop: 2 },
 });

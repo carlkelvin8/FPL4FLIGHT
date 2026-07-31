@@ -6,12 +6,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
 import Animated, { FadeInUp } from "react-native-reanimated";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { ONBOARDING_KEY } from "@shared/constants";
 
 const { width } = Dimensions.get("window");
-
-const ONBOARDING_KEY = "fpl4flight_onboarding_done";
 
 interface Slide {
   id: string;
@@ -55,8 +55,10 @@ const SLIDES: Slide[] = [
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors: theme } = useAppTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const styles = createStyles(theme);
 
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -144,19 +146,20 @@ export async function hasCompletedOnboarding(): Promise<boolean> {
   }
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  header: { alignItems: "flex-end", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
-  skipText: { fontSize: fontSize.base, color: colors.runway[500], fontWeight: "500" },
-  slide: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: spacing.xl },
-  slideContent: { alignItems: "center" },
-  iconBg: { width: 120, height: 120, borderRadius: 60, alignItems: "center", justifyContent: "center", marginBottom: spacing.xl },
-  slideTitle: { fontSize: 26, fontWeight: "700", color: colors.runway[900], textAlign: "center", marginBottom: spacing.md, letterSpacing: -0.5 },
-  slideDesc: { fontSize: fontSize.base, color: colors.runway[500], textAlign: "center", lineHeight: 24, paddingHorizontal: spacing.md },
-  footer: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg },
-  dots: { flexDirection: "row", justifyContent: "center", gap: spacing.sm, marginBottom: spacing.lg },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.runway[200] },
-  dotActive: { width: 24, backgroundColor: colors.brand[600] },
-  nextBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, backgroundColor: colors.brand[600], paddingVertical: spacing.md, borderRadius: borderRadius.md },
-  nextBtnText: { fontSize: fontSize.base, fontWeight: "700", color: colors.white },
-});
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { alignItems: "flex-end", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+    skipText: { fontSize: fontSize.base, color: theme.textMuted, fontWeight: "500" },
+    slide: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: spacing.xl },
+    slideContent: { alignItems: "center" },
+    iconBg: { width: 120, height: 120, borderRadius: 60, alignItems: "center", justifyContent: "center", marginBottom: spacing.xl },
+    slideTitle: { fontSize: 26, fontWeight: "700", color: theme.textPrimary, textAlign: "center", marginBottom: spacing.md, letterSpacing: -0.5 },
+    slideDesc: { fontSize: fontSize.base, color: theme.textMuted, textAlign: "center", lineHeight: 24, paddingHorizontal: spacing.md },
+    footer: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg },
+    dots: { flexDirection: "row", justifyContent: "center", gap: spacing.sm, marginBottom: spacing.lg },
+    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.border },
+    dotActive: { width: 24, backgroundColor: colors.brand[600] },
+    nextBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, backgroundColor: colors.brand[600], paddingVertical: spacing.md, borderRadius: borderRadius.md },
+    nextBtnText: { fontSize: fontSize.base, fontWeight: "700", color: colors.white },
+  });

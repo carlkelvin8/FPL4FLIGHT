@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // PilotForms™ brand palette — aviation-inspired blues and neutrals
+        // FPL4FLIGHT brand palette — aviation-inspired blues and neutrals
         brand: {
           50: "#eff6ff",
           100: "#dbeafe",

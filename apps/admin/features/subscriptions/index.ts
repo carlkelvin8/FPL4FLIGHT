@@ -1,6 +1,7 @@
 /**
  * Subscriptions feature module barrel.
- * Subscription status, overrides, and payment history are implemented in Task 21.
+ * Subscription overrides and payment history are implemented in Task 21.
  */
 
-export {};
+export { SubscriptionsRepository } from "./repository";
+export type { SubscriptionRow, SubscriptionSummary } from "./repository";

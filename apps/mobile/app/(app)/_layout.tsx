@@ -1,8 +1,12 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@shared/theme";
+import { colors, darkTheme, lightTheme } from "@shared/theme";
+import { useThemeStore } from "@shared/stores/themeStore";
 
 export default function AppLayout() {
+  const isDark = useThemeStore((s) => s.isDark);
+  const theme = isDark ? darkTheme : lightTheme;
+
   return (
     <Tabs
       screenOptions={{
@@ -11,7 +15,7 @@ export default function AppLayout() {
         tabBarInactiveTintColor: colors.runway[400],
         tabBarStyle: {
           borderTopWidth: 0,
-          backgroundColor: colors.white,
+          backgroundColor: theme.surface,
           paddingBottom: 12,
           paddingTop: 12,
           height: 74,

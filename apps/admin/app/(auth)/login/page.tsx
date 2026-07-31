@@ -38,7 +38,7 @@ export default function LoginPage() {
           <div className="mb-4 inline-flex items-center justify-center gap-2.5">
             <BrandLogo />
             <span className="text-lg font-bold tracking-tight text-runway-900">
-              PilotForms
+              FPL4FLIGHT
             </span>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-runway-900">
@@ -55,7 +55,7 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-runway-400">
-            &copy; {new Date().getFullYear()} PilotForms.
+            &copy; {new Date().getFullYear()} FPL4FLIGHT.
           </p>
         </div>
       </div>

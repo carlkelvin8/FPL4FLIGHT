@@ -12,24 +12,26 @@ import { useAuthStore } from "@features/auth/stores/authStore";
 import { useProfile } from "@features/forms/hooks/useProfile";
 import { supabase } from "@core/network";
 import { isBiometricAvailable, isBiometricLockEnabled, enableBiometricLock, disableBiometricLock, authenticateWithBiometrics, getBiometricType } from "@core/biometrics";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, avatarPalette, type ThemeColors } from "@shared/theme";
 import { Card } from "@shared/components/Card";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme, useThemeStore, type ThemeMode } from "@shared/hooks/useAppTheme";
+import { APP_NAME } from "@shared/constants";
 
 // Pilot-themed avatars
 const PILOT_AVATARS = [
-  { id: "captain", label: "Captain", icon: "airplane" as const, bg: "#1e3a5f" },
-  { id: "copilot", label: "Co-Pilot", icon: "navigate" as const, bg: "#2d5a3f" },
-  { id: "navigator", label: "Navigator", icon: "compass" as const, bg: "#5b2d8e" },
-  { id: "engineer", label: "Engineer", icon: "construct" as const, bg: "#8b4513" },
-  { id: "tower", label: "ATC", icon: "radio" as const, bg: "#1a6b5c" },
-  { id: "instructor", label: "Instructor", icon: "school" as const, bg: "#c4421a" },
-  { id: "cadet", label: "Cadet", icon: "ribbon" as const, bg: "#4a5568" },
-  { id: "ace", label: "Ace", icon: "star" as const, bg: "#b8860b" },
-  { id: "hawk", label: "Hawk", icon: "flash" as const, bg: "#2c3e50" },
-  { id: "sky", label: "Sky", icon: "cloudy" as const, bg: "#3b82f6" },
-  { id: "jet", label: "Jet", icon: "rocket" as const, bg: "#0f172a" },
-  { id: "wing", label: "Wing", icon: "paper-plane" as const, bg: "#7c3aed" },
+  { id: "captain", label: "Captain", icon: "airplane" as const, bg: avatarPalette[0] },
+  { id: "copilot", label: "Co-Pilot", icon: "navigate" as const, bg: avatarPalette[1] },
+  { id: "navigator", label: "Navigator", icon: "compass" as const, bg: avatarPalette[2] },
+  { id: "engineer", label: "Engineer", icon: "construct" as const, bg: avatarPalette[3] },
+  { id: "tower", label: "ATC", icon: "radio" as const, bg: avatarPalette[4] },
+  { id: "instructor", label: "Instructor", icon: "school" as const, bg: avatarPalette[5] },
+  { id: "cadet", label: "Cadet", icon: "ribbon" as const, bg: avatarPalette[6] },
+  { id: "ace", label: "Ace", icon: "star" as const, bg: avatarPalette[7] },
+  { id: "hawk", label: "Hawk", icon: "flash" as const, bg: avatarPalette[8] },
+  { id: "sky", label: "Sky", icon: "cloudy" as const, bg: avatarPalette[9] },
+  { id: "jet", label: "Jet", icon: "rocket" as const, bg: avatarPalette[10] },
+  { id: "wing", label: "Wing", icon: "paper-plane" as const, bg: avatarPalette[11] },
 ] as const;
 
 const ACCOUNT_LINKS = [
@@ -59,12 +61,20 @@ const PILOT_TOOLS = [
   { icon: "construct-outline" as const, label: "Form Builder", desc: "Create custom form templates", route: "/(app)/form-builder" },
 ] as const;
 
+const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
+  { value: "light", label: "Light", icon: "sunny-outline" },
+  { value: "dark", label: "Dark", icon: "moon-outline" },
+  { value: "system", label: "System", icon: "phone-portrait-outline" },
+];
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signOut } = useAuth();
   const user = useAuthStore((s) => s.user);
   const { profile, isLoading: profileLoading } = useProfile();
+  const { colors: theme, mode } = useAppTheme();
+  const setThemeMode = useThemeStore((s) => s.setMode);
 
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(true);
@@ -117,6 +127,7 @@ export default function SettingsScreen() {
   }, []);
 
   const displayName = profile?.fullName || email?.split("@")[0] || "Pilot";
+  const styles = createStyles(theme);
 
   async function handleToggle(setter: (v: boolean) => void, _value: boolean, field: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -134,6 +145,11 @@ export default function SettingsScreen() {
       { text: "Cancel", style: "cancel" },
       { text: "Sign out", style: "destructive", onPress: signOut },
     ]);
+  }
+
+  function handleThemeChange(next: ThemeMode) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setThemeMode(next);
   }
 
   async function handleSelectAvatar(avatar: typeof PILOT_AVATARS[number]) {
@@ -181,7 +197,7 @@ export default function SettingsScreen() {
               <Text style={styles.profileEmail}>{email || "No email"}</Text>
               <View style={styles.profileRoleRow}>
                 <View style={styles.roleBadge}>
-                  <Ionicons name="shield-checkmark" size={10} color={colors.runway[600]} style={{ marginRight: 3 }} />
+                  <Ionicons name="shield-checkmark" size={10} color={theme.textSecondary} style={{ marginRight: 3 }} />
                   <Text style={styles.roleText}>{profile?.role ?? user?.role ?? "pilot"}</Text>
                 </View>
               </View>
@@ -195,11 +211,11 @@ export default function SettingsScreen() {
         <View style={styles.idCard}>
           {/* Gradient accent top */}
           <View style={styles.idCardGradientTop} />
-          
+
           {/* Header */}
           <View style={styles.idCardHeader}>
             <View style={styles.idCardHeaderLeft}>
-              <Text style={styles.idCardBrand}>FPL4FLIGHT</Text>
+              <Text style={styles.idCardBrand}>{APP_NAME}</Text>
               <Text style={styles.idCardSubtitle}>DIGITAL PILOT CERTIFICATE</Text>
             </View>
             <View style={styles.idCardChip}>
@@ -212,7 +228,7 @@ export default function SettingsScreen() {
           {/* Main content */}
           <View style={styles.idCardContent}>
             <View style={styles.idCardAvatarSection}>
-              <View style={[styles.idCardAvatar, { backgroundColor: selectedAvatar.bg }]}>  
+              <View style={[styles.idCardAvatar, { backgroundColor: selectedAvatar.bg }]}>
                 <Ionicons name={selectedAvatar.icon} size={26} color="#fff" />
               </View>
               <View style={styles.idCardVerifiedBadge}>
@@ -251,6 +267,44 @@ export default function SettingsScreen() {
           <View style={styles.idCardGradientBottom} />
         </View>
       </View>
+
+      {/* Appearance */}
+      <Text style={styles.sectionLabel}>Appearance</Text>
+      <Card variant="default" style={styles.card}>
+        <View style={styles.themeRow}>
+          <View style={styles.toggleLeft}>
+            <View style={[styles.iconCircle, { backgroundColor: colors.brand[50] }]}>
+              <Ionicons name="contrast-outline" size={16} color={colors.brand[600]} />
+            </View>
+            <View>
+              <Text style={styles.toggleLabel}>Theme</Text>
+              <Text style={styles.toggleDesc}>Light, dark, or match system</Text>
+            </View>
+          </View>
+          <View style={styles.themeOptions}>
+            {THEME_OPTIONS.map((opt) => {
+              const active = mode === opt.value;
+              return (
+                <PressableScale
+                  key={opt.value}
+                  style={[styles.themeOption, active && styles.themeOptionActive]}
+                  onPress={() => handleThemeChange(opt.value)}
+                  haptic
+                >
+                  <Ionicons
+                    name={opt.icon as any}
+                    size={14}
+                    color={active ? colors.white : theme.textMuted}
+                  />
+                  <Text style={[styles.themeOptionLabel, active && styles.themeOptionLabelActive]}>
+                    {opt.label}
+                  </Text>
+                </PressableScale>
+              );
+            })}
+          </View>
+        </View>
+      </Card>
 
       {/* Preferences */}
       <Text style={styles.sectionLabel}>Preferences</Text>
@@ -313,8 +367,8 @@ export default function SettingsScreen() {
             <View style={styles.divider} />
             <View style={styles.toggleRow}>
               <View style={styles.toggleLeft}>
-                <View style={[styles.iconCircle, { backgroundColor: "#f0fdf4" }]}>
-                  <Ionicons name="finger-print-outline" size={16} color="#16a34a" />
+                <View style={[styles.iconCircle, { backgroundColor: colors.green[50] }]}>
+                  <Ionicons name="finger-print-outline" size={16} color={colors.green[600]} />
                 </View>
                 <View>
                   <Text style={styles.toggleLabel}>{biometricType} Lock</Text>
@@ -333,8 +387,8 @@ export default function SettingsScreen() {
                     setBiometricEnabled(false);
                   }
                 }}
-                trackColor={{ false: colors.runway[300], true: "#86efac" }}
-                thumbColor={biometricEnabled ? "#16a34a" : colors.runway[400]}
+                trackColor={{ false: colors.runway[300], true: colors.green[500] }}
+                thumbColor={biometricEnabled ? colors.green[600] : colors.runway[400]}
               />
             </View>
           </>
@@ -347,14 +401,14 @@ export default function SettingsScreen() {
         {ACCOUNT_LINKS.map((link, i) => (
           <View key={link.label}>
             <PressableScale style={styles.linkRow} haptic onPress={() => handleAccountLink(link)}>
-              <View style={[styles.iconCircle, { backgroundColor: colors.runway[100] }]}>
-                <Ionicons name={link.icon} size={16} color={colors.runway[700]} />
+              <View style={[styles.iconCircle, { backgroundColor: theme.borderLight }]}>
+                <Ionicons name={link.icon} size={16} color={theme.textSecondary} />
               </View>
               <View style={styles.linkContent}>
                 <Text style={styles.linkLabel}>{link.label}</Text>
                 <Text style={styles.linkDesc}>{link.desc}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.runway[400]} />
+              <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
             </PressableScale>
             {i < ACCOUNT_LINKS.length - 1 && <View style={styles.divider} />}
           </View>
@@ -380,13 +434,13 @@ export default function SettingsScreen() {
         {APP_INFO_LINKS.map((link, i) => (
           <View key={link.label}>
             <PressableScale style={styles.linkRow} haptic onPress={() => handleAppInfoLink(link)}>
-              <View style={[styles.iconCircle, { backgroundColor: colors.runway[100] }]}>
-                <Ionicons name={link.icon} size={16} color={colors.runway[700]} />
+              <View style={[styles.iconCircle, { backgroundColor: theme.borderLight }]}>
+                <Ionicons name={link.icon} size={16} color={theme.textSecondary} />
               </View>
               <View style={styles.linkContent}>
                 <Text style={styles.linkLabel}>{link.label}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={14} color={colors.runway[400]} />
+              <Ionicons name="chevron-forward" size={14} color={theme.textMuted} />
             </PressableScale>
             {i < APP_INFO_LINKS.length - 1 && <View style={styles.divider} />}
           </View>
@@ -399,8 +453,8 @@ export default function SettingsScreen() {
         <Text style={styles.signOutText}>Sign out</Text>
       </PressableScale>
 
-      <Text style={styles.version}>FPL4FLIGHT v1.0.0 (Build 1)</Text>
-      <Text style={styles.copyright}>© 2024 FPL4FLIGHT. All rights reserved.</Text>
+      <Text style={styles.version}>{APP_NAME} v1.0.0 (Build 1)</Text>
+      <Text style={styles.copyright}>© 2024 {APP_NAME}. All rights reserved.</Text>
 
       {/* Avatar Picker Modal */}
       <Modal visible={showAvatarPicker} transparent animationType="fade">
@@ -445,96 +499,105 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
-  title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    title: { fontSize: 28, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.5, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
 
-  // Profile card
-  profileCard: { flexDirection: "row", gap: spacing.md, alignItems: "center", marginHorizontal: spacing.lg, marginBottom: spacing.md },
-  avatar: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", position: "relative" },
-  avatarBadge: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.runway[700], alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.white },
-  profileInfo: { flex: 1 },
-  profileName: { fontSize: fontSize.base, fontWeight: "700", color: colors.runway[900] },
-  profileEmail: { fontSize: fontSize.sm, color: colors.runway[500], marginTop: 1 },
-  profileRoleRow: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.sm },
-  roleBadge: { flexDirection: "row", alignItems: "center", backgroundColor: colors.runway[100], paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.sm },
-  roleText: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[600] },
+    // Profile card
+    profileCard: { flexDirection: "row", gap: spacing.md, alignItems: "center", marginHorizontal: spacing.lg, marginBottom: spacing.md },
+    avatar: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", position: "relative" },
+    avatarBadge: { position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.runway[700], alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: theme.surface },
+    profileInfo: { flex: 1 },
+    profileName: { fontSize: fontSize.base, fontWeight: "700", color: theme.textPrimary },
+    profileEmail: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: 1 },
+    profileRoleRow: { flexDirection: "row", gap: spacing.xs, marginTop: spacing.sm },
+    roleBadge: { flexDirection: "row", alignItems: "center", backgroundColor: theme.borderLight, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.sm },
+    roleText: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textSecondary },
 
-  // Section
-  sectionLabel: { fontSize: fontSize.xs, fontWeight: "700", color: colors.runway[500], textTransform: "uppercase", letterSpacing: 0.6, paddingHorizontal: spacing.lg, marginBottom: spacing.sm, marginTop: spacing.sm },
-  card: { marginHorizontal: spacing.lg, marginBottom: spacing.md },
+    // Section
+    sectionLabel: { fontSize: fontSize.xs, fontWeight: "700", color: theme.textMuted, textTransform: "uppercase", letterSpacing: 0.6, paddingHorizontal: spacing.lg, marginBottom: spacing.sm, marginTop: spacing.sm },
+    card: { marginHorizontal: spacing.lg, marginBottom: spacing.md },
 
-  // Toggles
-  toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: spacing.sm + 2 },
-  toggleLeft: { flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 },
-  toggleLabel: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[800] },
-  toggleDesc: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: 1 },
-  divider: { height: 1, backgroundColor: colors.runway[100], marginLeft: 44 },
+    // Toggles
+    toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: spacing.sm + 2 },
+    toggleLeft: { flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 },
+    toggleLabel: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textPrimary },
+    toggleDesc: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: 1 },
+    divider: { height: 1, backgroundColor: theme.borderLight, marginLeft: 44 },
 
-  // Icon circle
-  iconCircle: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+    // Icon circle
+    iconCircle: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
 
-  // Links
-  linkRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm + 4 },
-  linkContent: { flex: 1 },
-  linkLabel: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[800] },
-  linkDesc: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: 1 },
+    // Theme selector
+    themeRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: spacing.sm + 2, gap: spacing.sm },
+    themeOptions: { flexDirection: "row", gap: spacing.xs },
+    themeOption: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.background },
+    themeOptionActive: { backgroundColor: colors.brand[600], borderColor: colors.brand[600] },
+    themeOptionLabel: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textMuted },
+    themeOptionLabelActive: { color: colors.white },
 
-  // Sign out
-  signOutBtn: { marginHorizontal: spacing.lg, marginTop: spacing.sm, marginBottom: spacing.sm, paddingVertical: spacing.sm + 6, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100], backgroundColor: colors.white },
-  signOutText: { fontSize: fontSize.base, fontWeight: "600", color: colors.red[600] },
+    // Links
+    linkRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm + 4 },
+    linkContent: { flex: 1 },
+    linkLabel: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textPrimary },
+    linkDesc: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: 1 },
 
-  // Footer
-  version: { textAlign: "center", fontSize: fontSize.xs, color: colors.runway[400], marginTop: spacing.md },
-  copyright: { textAlign: "center", fontSize: fontSize.xs, color: colors.runway[300], marginTop: spacing.xs },
+    // Sign out
+    signOutBtn: { marginHorizontal: spacing.lg, marginTop: spacing.sm, marginBottom: spacing.sm, paddingVertical: spacing.sm + 6, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100], backgroundColor: theme.surface },
+    signOutText: { fontSize: fontSize.base, fontWeight: "600", color: colors.red[600] },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, paddingBottom: spacing.xl, alignItems: "center" },
-  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.runway[300], marginBottom: spacing.md },
-  modalTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900], marginBottom: 2 },
-  modalSubtitle: { fontSize: fontSize.sm, color: colors.runway[500], marginBottom: spacing.lg },
-  avatarGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: spacing.md, marginBottom: spacing.lg, width: "100%" },
-  avatarOptionWrapper: { alignItems: "center", width: 64 },
-  avatarOption: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", position: "relative" },
-  avatarOptionSelected: { borderWidth: 3, borderColor: colors.brand[400] },
-  avatarOptionLabel: { fontSize: 10, color: colors.runway[500], textAlign: "center", fontWeight: "500", marginTop: 4 },
-  avatarOptionLabelActive: { color: colors.brand[600], fontWeight: "700" },
-  checkBadge: { position: "absolute", bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.white },
-  modalDismiss: { backgroundColor: colors.runway[900], paddingHorizontal: spacing["2xl"], paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, width: "100%", alignItems: "center" },
-  modalDismissText: { fontSize: fontSize.base, fontWeight: "600", color: colors.white },
+    // Footer
+    version: { textAlign: "center", fontSize: fontSize.xs, color: theme.textMuted, marginTop: spacing.md },
+    copyright: { textAlign: "center", fontSize: fontSize.xs, color: theme.textMuted, marginTop: spacing.xs },
 
-  // Pilot ID Card — Ultra Premium Glass Design
-  idCardContainer: { marginHorizontal: spacing.md, marginBottom: spacing.lg },
-  idCard: { borderRadius: 20, overflow: "hidden", backgroundColor: "#1e1b4b", shadowColor: "#6366f1", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.4, shadowRadius: 24, elevation: 12 },
-  idCardGradientTop: { height: 4, backgroundColor: "#818cf8" },
-  idCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingTop: 16, paddingBottom: 8 },
-  idCardHeaderLeft: {},
-  idCardBrand: { fontSize: 10, fontWeight: "900", color: "#c7d2fe", letterSpacing: 3 },
-  idCardSubtitle: { fontSize: 9, fontWeight: "600", color: "#6366f1", marginTop: 2, letterSpacing: 0.8 },
-  idCardChip: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(99,102,241,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "rgba(129,140,248,0.3)" },
-  idCardChipInner: { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(99,102,241,0.4)", alignItems: "center", justifyContent: "center" },
-  idCardContent: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 14, gap: 14 },
-  idCardAvatarSection: { position: "relative" },
-  idCardAvatar: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "rgba(129,140,248,0.5)" },
-  idCardVerifiedBadge: { position: "absolute", bottom: -3, right: -3, backgroundColor: "#1e1b4b", borderRadius: 10, padding: 2 },
-  idCardTextSection: { flex: 1 },
-  idCardPilotName: { fontSize: 20, fontWeight: "800", color: "#ffffff", letterSpacing: -0.5 },
-  idCardRole: { fontSize: 10, fontWeight: "700", color: "#34d399", marginTop: 4, letterSpacing: 1.2 },
-  idCardGrid: { flexDirection: "row", paddingHorizontal: 18, paddingBottom: 14, gap: 12 },
-  idCardGridItem: { flex: 1, backgroundColor: "rgba(99,102,241,0.08)", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "rgba(129,140,248,0.15)" },
-  idCardGridLabel: { fontSize: 8, fontWeight: "700", color: "#818cf8", letterSpacing: 1.2, marginBottom: 3 },
-  idCardGridValue: { fontSize: 11, fontWeight: "600", color: "#e0e7ff" },
-  idCardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingVertical: 10, backgroundColor: "rgba(30,27,75,0.6)", borderTopWidth: 1, borderTopColor: "rgba(129,140,248,0.1)" },
-  idCardFooterLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
-  idCardActiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#34d399" },
-  idCardFooterStatus: { fontSize: 9, fontWeight: "800", color: "#34d399", letterSpacing: 1 },
-  idCardFooterYear: { fontSize: 9, fontWeight: "600", color: "#6366f1" },
-  idCardGradientBottom: { height: 3, backgroundColor: "#6366f1" },
+    // Modal
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+    modalContent: { backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, paddingBottom: spacing.xl, alignItems: "center" },
+    modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: theme.border, marginBottom: spacing.md },
+    modalTitle: { fontSize: fontSize.lg, fontWeight: "700", color: theme.textPrimary, marginBottom: 2 },
+    modalSubtitle: { fontSize: fontSize.sm, color: theme.textMuted, marginBottom: spacing.lg },
+    avatarGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: spacing.md, marginBottom: spacing.lg, width: "100%" },
+    avatarOptionWrapper: { alignItems: "center", width: 64 },
+    avatarOption: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", position: "relative" },
+    avatarOptionSelected: { borderWidth: 3, borderColor: colors.brand[400] },
+    avatarOptionLabel: { fontSize: 10, color: theme.textMuted, textAlign: "center", fontWeight: "500", marginTop: 4 },
+    avatarOptionLabelActive: { color: colors.brand[600], fontWeight: "700" },
+    checkBadge: { position: "absolute", bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: theme.surface },
+    modalDismiss: { backgroundColor: colors.runway[900], paddingHorizontal: spacing["2xl"], paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, width: "100%", alignItems: "center" },
+    modalDismissText: { fontSize: fontSize.base, fontWeight: "600", color: colors.white },
 
-  // Pilot Tools Grid
-  toolsGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: spacing.md, gap: spacing.sm, marginBottom: spacing.md },
-  toolCard: { width: "30%", backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.sm, alignItems: "center", borderWidth: 1, borderColor: colors.runway[100], minHeight: 80, justifyContent: "center" },
-  toolIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.brand[50], alignItems: "center", justifyContent: "center", marginBottom: spacing.xs },
-  toolLabel: { fontSize: 10, fontWeight: "600", color: colors.runway[700], textAlign: "center" },
-});
+    // Pilot ID Card — Ultra Premium Glass Design
+    idCardContainer: { marginHorizontal: spacing.md, marginBottom: spacing.lg },
+    idCard: { borderRadius: 20, overflow: "hidden", backgroundColor: "#1e1b4b", shadowColor: "#6366f1", shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.4, shadowRadius: 24, elevation: 12 },
+    idCardGradientTop: { height: 4, backgroundColor: "#818cf8" },
+    idCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingTop: 16, paddingBottom: 8 },
+    idCardHeaderLeft: {},
+    idCardBrand: { fontSize: 10, fontWeight: "900", color: "#c7d2fe", letterSpacing: 3 },
+    idCardSubtitle: { fontSize: 9, fontWeight: "600", color: "#6366f1", marginTop: 2, letterSpacing: 0.8 },
+    idCardChip: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(99,102,241,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "rgba(129,140,248,0.3)" },
+    idCardChipInner: { width: 28, height: 28, borderRadius: 8, backgroundColor: "rgba(99,102,241,0.4)", alignItems: "center", justifyContent: "center" },
+    idCardContent: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 14, gap: 14 },
+    idCardAvatarSection: { position: "relative" },
+    idCardAvatar: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "rgba(129,140,248,0.5)" },
+    idCardVerifiedBadge: { position: "absolute", bottom: -3, right: -3, backgroundColor: "#1e1b4b", borderRadius: 10, padding: 2 },
+    idCardTextSection: { flex: 1 },
+    idCardPilotName: { fontSize: 20, fontWeight: "800", color: "#ffffff", letterSpacing: -0.5 },
+    idCardRole: { fontSize: 10, fontWeight: "700", color: "#34d399", marginTop: 4, letterSpacing: 1.2 },
+    idCardGrid: { flexDirection: "row", paddingHorizontal: 18, paddingBottom: 14, gap: 12 },
+    idCardGridItem: { flex: 1, backgroundColor: "rgba(99,102,241,0.08)", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "rgba(129,140,248,0.15)" },
+    idCardGridLabel: { fontSize: 8, fontWeight: "700", color: "#818cf8", letterSpacing: 1.2, marginBottom: 3 },
+    idCardGridValue: { fontSize: 11, fontWeight: "600", color: "#e0e7ff" },
+    idCardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingVertical: 10, backgroundColor: "rgba(30,27,75,0.6)", borderTopWidth: 1, borderTopColor: "rgba(129,140,248,0.1)" },
+    idCardFooterLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
+    idCardActiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#34d399" },
+    idCardFooterStatus: { fontSize: 9, fontWeight: "800", color: "#34d399", letterSpacing: 1 },
+    idCardFooterYear: { fontSize: 9, fontWeight: "600", color: "#6366f1" },
+    idCardGradientBottom: { height: 3, backgroundColor: "#6366f1" },
+
+    // Pilot Tools Grid
+    toolsGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: spacing.md, gap: spacing.sm, marginBottom: spacing.md },
+    toolCard: { width: "30%", backgroundColor: theme.surface, borderRadius: borderRadius.md, padding: spacing.sm, alignItems: "center", borderWidth: 1, borderColor: theme.borderLight, minHeight: 80, justifyContent: "center" },
+    toolIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.brand[50], alignItems: "center", justifyContent: "center", marginBottom: spacing.xs },
+    toolLabel: { fontSize: 10, fontWeight: "600", color: theme.textSecondary, textAlign: "center" },
+  });

@@ -11,7 +11,6 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Alert,
-  Switch,
 } from "react-native";
 import { Link } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,15 +21,20 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "@features/auth/hooks/useAuth";
 import { supabase } from "@core/network";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { APP_NAME } from "@shared/constants";
 
 const REMEMBER_KEY = "fpl4flight_remember_me";
 const SAVED_EMAIL_KEY = "fpl4flight_saved_email";
-const SAVED_PASS_KEY = "fpl4flight_saved_pass";
+// Legacy key — pre-1.0 stored the password in SecureStore. Never read or
+// write it again; purge any value that older builds may have left behind.
+const LEGACY_SAVED_PASS_KEY = "fpl4flight_saved_pass";
 
 export default function LoginScreen() {
   const { signIn, isLoading, error } = useAuth();
+  const { colors: theme, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const passwordRef = useRef<TextInput>(null);
 
@@ -40,16 +44,16 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // Load saved credentials on mount
+  // Load saved email on mount (password is never persisted) and purge any
+  // legacy password that previous versions stored.
   useEffect(() => {
     (async () => {
       try {
+        await SecureStore.deleteItemAsync(LEGACY_SAVED_PASS_KEY);
         const remembered = await SecureStore.getItemAsync(REMEMBER_KEY);
         if (remembered === "true") {
           const savedEmail = await SecureStore.getItemAsync(SAVED_EMAIL_KEY);
-          const savedPass = await SecureStore.getItemAsync(SAVED_PASS_KEY);
           if (savedEmail) setEmail(savedEmail);
-          if (savedPass) setPassword(savedPass);
           setRememberMe(true);
         }
       } catch { /* ignore */ }
@@ -92,16 +96,14 @@ export default function LoginScreen() {
     if (!email.trim()) { setLocalError("Please enter your email address."); return; }
     if (!password) { setLocalError("Please enter your password."); return; }
 
-    // Save or clear credentials based on remember me
+    // Remember me only stores the email address — never the password.
     try {
       if (rememberMe) {
         await SecureStore.setItemAsync(REMEMBER_KEY, "true");
         await SecureStore.setItemAsync(SAVED_EMAIL_KEY, email.trim());
-        await SecureStore.setItemAsync(SAVED_PASS_KEY, password);
       } else {
         await SecureStore.deleteItemAsync(REMEMBER_KEY);
         await SecureStore.deleteItemAsync(SAVED_EMAIL_KEY);
-        await SecureStore.deleteItemAsync(SAVED_PASS_KEY);
       }
     } catch { /* ignore */ }
 
@@ -110,11 +112,12 @@ export default function LoginScreen() {
 
   const displayError = localError ?? error?.message ?? null;
   const canSubmit = email.trim().length > 0 && password.length > 0 && !isLoading;
+  const styles = createStyles(theme);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.flex}>
-        <StatusBar style="dark" />
+      <View style={[styles.flex, { backgroundColor: theme.background }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -123,7 +126,7 @@ export default function LoginScreen() {
             <Animated.View entering={FadeInUp.delay(100).duration(400)} style={styles.topSection}>
               <View style={styles.logo}>
                 <Text style={styles.logoIcon}>▲</Text>
-                <Text style={styles.brandName}>FPL4FLIGHT</Text>
+                <Text style={styles.brandName}>{APP_NAME}</Text>
               </View>
               <Text style={styles.title}>Sign in</Text>
               <Text style={styles.subtitle}>Enter your credentials to continue</Text>
@@ -135,7 +138,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="you@company.com"
-                  placeholderTextColor={colors.runway[400]}
+                  placeholderTextColor={theme.textMuted}
                   value={email}
                   onChangeText={(v) => { setEmail(v); setLocalError(null); }}
                   autoCapitalize="none"
@@ -157,7 +160,7 @@ export default function LoginScreen() {
                     ref={passwordRef}
                     style={[styles.input, styles.passwordInput]}
                     placeholder="Enter your password"
-                    placeholderTextColor={colors.runway[400]}
+                    placeholderTextColor={theme.textMuted}
                     value={password}
                     onChangeText={(v) => { setPassword(v); setLocalError(null); }}
                     secureTextEntry={!showPassword}
@@ -252,221 +255,218 @@ export default function LoginScreen() {
 
 const INPUT_HEIGHT = 50;
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: {
-    flex: 1,
-    paddingHorizontal: spacing.lg,
-    justifyContent: "center",
-  },
-  topSection: {
-    alignItems: "center",
-    marginBottom: spacing["2xl"] + spacing.lg,
-  },
-  logo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing["2xl"],
-  },
-  logoIcon: {
-    fontSize: 22,
-    color: colors.brand[600],
-  },
-  brandName: {
-    fontSize: fontSize.xl,
-    fontWeight: "700",
-    color: colors.runway[900],
-    letterSpacing: -0.3,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: colors.runway[900],
-    letterSpacing: -0.5,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: fontSize.base,
-    color: colors.runway[500],
-    fontWeight: "400",
-  },
-  form: {
-    width: "100%",
-  },
-  inputGroup: {
-    marginBottom: spacing.md,
-  },
-  label: {
-    fontSize: fontSize.xs,
-    fontWeight: "600",
-    color: colors.runway[600],
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    height: INPUT_HEIGHT,
-    backgroundColor: colors.runway[50],
-    borderWidth: 1,
-    borderColor: colors.runway[200],
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    fontSize: fontSize.base,
-    color: colors.runway[900],
-    fontWeight: "500",
-  },
-  passwordRow: {
-    position: "relative",
-    justifyContent: "center",
-  },
-  passwordInput: {
-    paddingRight: 60,
-  },
-  eyeBtn: {
-    position: "absolute",
-    right: spacing.md,
-  },
-  eyeText: {
-    fontSize: fontSize.xs,
-    fontWeight: "600",
-    color: colors.brand[600],
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  forgotRow: {
-    alignItems: "flex-end",
-    marginBottom: spacing.lg,
-  },
-  forgotText: {
-    fontSize: fontSize.sm,
-    fontWeight: "600",
-    color: colors.brand[600],
-  },
-  rememberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.lg,
-  },
-  rememberLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.runway[300],
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkboxActive: {
-    backgroundColor: colors.brand[600],
-    borderColor: colors.brand[600],
-  },
-  checkmark: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  rememberText: {
-    fontSize: fontSize.sm,
-    color: colors.runway[600],
-    fontWeight: "500",
-  },
-  errorBox: {
-    backgroundColor: colors.red[50],
-    borderWidth: 1,
-    borderColor: colors.red[100],
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    marginBottom: spacing.md,
-  },
-  errorText: {
-    fontSize: fontSize.sm,
-    color: colors.red[700],
-    fontWeight: "500",
-  },
-  button: {
-    height: INPUT_HEIGHT + 2,
-    backgroundColor: colors.runway[900],
-    borderRadius: borderRadius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonMuted: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: fontSize.base,
-    fontWeight: "600",
-    letterSpacing: 0.3,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: spacing.lg + spacing.sm,
-  },
-  footerText: {
-    fontSize: fontSize.sm,
-    color: colors.runway[500],
-    fontWeight: "400",
-  },
-  footerLink: {
-    fontSize: fontSize.sm,
-    color: colors.brand[600],
-    fontWeight: "600",
-  },
-  // Divider
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.runway[200],
-  },
-  dividerText: {
-    fontSize: fontSize.sm,
-    color: colors.runway[400],
-    paddingHorizontal: spacing.md,
-    fontWeight: "500",
-  },
-  // Google button
-  googleButton: {
-    height: INPUT_HEIGHT + 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: borderRadius.md,
-    borderWidth: 1.5,
-    borderColor: colors.runway[200],
-    backgroundColor: colors.white,
-    gap: spacing.sm,
-  },
-  googleIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  googleG: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#4285F4",
-  },
-  googleButtonText: {
-    fontSize: fontSize.base,
-    fontWeight: "600",
-    color: colors.runway[700],
-  },
-});
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    container: {
+      flex: 1,
+      paddingHorizontal: spacing.lg,
+      justifyContent: "center",
+    },
+    topSection: {
+      alignItems: "center",
+      marginBottom: spacing["2xl"] + spacing.lg,
+    },
+    logo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginBottom: spacing["2xl"],
+    },
+    logoIcon: {
+      fontSize: 22,
+      color: colors.brand[600],
+    },
+    brandName: {
+      fontSize: fontSize.xl,
+      fontWeight: "700",
+      color: theme.textPrimary,
+      letterSpacing: -0.3,
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: "700",
+      color: theme.textPrimary,
+      letterSpacing: -0.5,
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      fontSize: fontSize.base,
+      color: theme.textMuted,
+      fontWeight: "400",
+    },
+    form: {
+      width: "100%",
+    },
+    inputGroup: {
+      marginBottom: spacing.md,
+    },
+    label: {
+      fontSize: fontSize.xs,
+      fontWeight: "600",
+      color: theme.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.8,
+      marginBottom: spacing.sm,
+    },
+    input: {
+      height: INPUT_HEIGHT,
+      backgroundColor: theme.background,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.md,
+      fontSize: fontSize.base,
+      color: theme.textPrimary,
+      fontWeight: "500",
+    },
+    passwordRow: {
+      position: "relative",
+      justifyContent: "center",
+    },
+    passwordInput: {
+      paddingRight: 60,
+    },
+    eyeBtn: {
+      position: "absolute",
+      right: spacing.md,
+    },
+    eyeText: {
+      fontSize: fontSize.xs,
+      fontWeight: "600",
+      color: colors.brand[600],
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    forgotText: {
+      fontSize: fontSize.sm,
+      fontWeight: "600",
+      color: colors.brand[600],
+    },
+    rememberRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.lg,
+    },
+    rememberLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: theme.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    checkboxActive: {
+      backgroundColor: colors.brand[600],
+      borderColor: colors.brand[600],
+    },
+    checkmark: {
+      color: colors.white,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    rememberText: {
+      fontSize: fontSize.sm,
+      color: theme.textSecondary,
+      fontWeight: "500",
+    },
+    errorBox: {
+      backgroundColor: colors.red[50],
+      borderWidth: 1,
+      borderColor: colors.red[100],
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      marginBottom: spacing.md,
+    },
+    errorText: {
+      fontSize: fontSize.sm,
+      color: colors.red[700],
+      fontWeight: "500",
+    },
+    button: {
+      height: INPUT_HEIGHT + 2,
+      backgroundColor: colors.runway[900],
+      borderRadius: borderRadius.md,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    buttonMuted: {
+      opacity: 0.5,
+    },
+    buttonText: {
+      color: colors.white,
+      fontSize: fontSize.base,
+      fontWeight: "600",
+      letterSpacing: 0.3,
+    },
+    footer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      marginTop: spacing.lg + spacing.sm,
+    },
+    footerText: {
+      fontSize: fontSize.sm,
+      color: theme.textMuted,
+      fontWeight: "400",
+    },
+    footerLink: {
+      fontSize: fontSize.sm,
+      color: colors.brand[600],
+      fontWeight: "600",
+    },
+    // Divider
+    dividerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginVertical: spacing.md,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: theme.border,
+    },
+    dividerText: {
+      fontSize: fontSize.sm,
+      color: theme.textMuted,
+      paddingHorizontal: spacing.md,
+      fontWeight: "500",
+    },
+    // Google button
+    googleButton: {
+      height: INPUT_HEIGHT + 2,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: borderRadius.md,
+      borderWidth: 1.5,
+      borderColor: theme.border,
+      backgroundColor: theme.surface,
+      gap: spacing.sm,
+    },
+    googleIcon: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.white,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    googleG: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: "#4285F4",
+    },
+    googleButtonText: {
+      fontSize: fontSize.base,
+      fontWeight: "600",
+      color: theme.textPrimary,
+    },
+  });

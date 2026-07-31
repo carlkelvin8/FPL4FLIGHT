@@ -7,9 +7,10 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { File, Paths } from "expo-file-system";
 import QRCode from "react-native-qrcode-svg";
-import { colors, spacing, borderRadius, fontSize, shadows } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, shadows, type ThemeColors } from "@shared/theme";
 import { Card } from "@shared/components/Card";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
 
 const PRESETS = [
   { label: "Form Link", icon: "document-text-outline", prefix: "fpl4flight://form/" },
@@ -19,10 +20,12 @@ const PRESETS = [
 
 export default function QRCodeScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const [inputValue, setInputValue] = useState("");
   const [qrValue, setQrValue] = useState("");
   const [selectedPreset, setSelectedPreset] = useState(2);
   const qrRef = useRef<any>(null);
+  const styles = createStyles(theme);
 
   const handleGenerate = useCallback(() => {
     const preset = PRESETS[selectedPreset];
@@ -79,7 +82,7 @@ export default function QRCodeScreen() {
             <Ionicons
               name={preset.icon as any}
               size={14}
-              color={selectedPreset === i ? colors.white : colors.runway[600]}
+              color={selectedPreset === i ? colors.white : theme.textSecondary}
             />
             <Text style={[styles.presetLabel, selectedPreset === i && styles.presetLabelActive]}>
               {preset.label}
@@ -94,7 +97,7 @@ export default function QRCodeScreen() {
         <TextInput
           style={styles.input}
           placeholder={selectedPreset === 2 ? "Enter text, URL, or data..." : "Enter ID or reference..."}
-          placeholderTextColor={colors.runway[400]}
+          placeholderTextColor={theme.textMuted}
           value={inputValue}
           onChangeText={setInputValue}
           multiline
@@ -109,7 +112,7 @@ export default function QRCodeScreen() {
         <View style={styles.buttonRow}>
           {qrValue ? (
             <PressableScale style={styles.clearBtn} onPress={handleClear} haptic>
-              <Ionicons name="close-circle-outline" size={16} color={colors.runway[600]} />
+              <Ionicons name="close-circle-outline" size={16} color={theme.textSecondary} />
               <Text style={styles.clearBtnText}>Clear</Text>
             </PressableScale>
           ) : null}
@@ -150,7 +153,7 @@ export default function QRCodeScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               Alert.alert("Copied", "QR value copied to clipboard.");
             }} haptic>
-              <Ionicons name="copy-outline" size={18} color={colors.runway[700]} />
+              <Ionicons name="copy-outline" size={18} color={theme.textSecondary} />
               <Text style={styles.copyBtnText}>Copy</Text>
             </PressableScale>
           </View>
@@ -158,7 +161,7 @@ export default function QRCodeScreen() {
       ) : (
         <View style={styles.placeholder}>
           <View style={styles.placeholderIconBg}>
-            <Ionicons name="qr-code-outline" size={40} color={colors.runway[400]} />
+            <Ionicons name="qr-code-outline" size={40} color={theme.textMuted} />
           </View>
           <Text style={styles.placeholderTitle}>No QR code yet</Text>
           <Text style={styles.placeholderSub}>Enter content above and tap Generate</Text>
@@ -168,38 +171,39 @@ export default function QRCodeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5 },
-  subtitle: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
+  title: { fontSize: 28, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.5 },
+  subtitle: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: 2 },
   presetRow: { flexDirection: "row", paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.md },
-  presetChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.runway[200] },
+  presetChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.md, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border },
   presetChipActive: { backgroundColor: colors.brand[600], borderColor: colors.brand[600] },
-  presetLabel: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[600] },
+  presetLabel: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textSecondary },
   presetLabelActive: { color: colors.white },
   inputCard: { marginHorizontal: spacing.lg, marginBottom: spacing.lg },
-  label: { fontSize: fontSize.xs, fontWeight: "700", color: colors.runway[500], letterSpacing: 0.6, marginBottom: spacing.sm },
-  input: { backgroundColor: colors.runway[50], borderWidth: 1, borderColor: colors.runway[200], borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4, fontSize: fontSize.base, color: colors.runway[900], minHeight: 72 },
+  label: { fontSize: fontSize.xs, fontWeight: "700", color: theme.textMuted, letterSpacing: 0.6, marginBottom: spacing.sm },
+  input: { backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4, fontSize: fontSize.base, color: theme.textPrimary, minHeight: 72 },
   prefixHint: { fontSize: fontSize.xs, color: colors.brand[600], marginTop: spacing.xs },
   buttonRow: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.sm, marginTop: spacing.md },
   generateBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.brand[600], paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, ...shadows.md },
   generateBtnDisabled: { backgroundColor: colors.runway[300], shadowOpacity: 0, elevation: 0 },
   generateBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.white },
-  clearBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.runway[200], backgroundColor: colors.white },
-  clearBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[600] },
+  clearBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
+  clearBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textSecondary },
   qrCard: { marginHorizontal: spacing.lg, alignItems: "center" },
-  qrContainer: { padding: spacing.lg, backgroundColor: colors.white, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.runway[100], alignItems: "center", justifyContent: "center" },
-  qrMeta: { width: "100%", marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.runway[100] },
-  qrMetaLabel: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[500], marginBottom: 2 },
-  qrMetaValue: { fontSize: fontSize.sm, color: colors.runway[700] },
+  qrContainer: { padding: spacing.lg, backgroundColor: theme.surface, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: theme.borderLight, alignItems: "center", justifyContent: "center" },
+  qrMeta: { width: "100%", marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: theme.borderLight },
+  qrMetaLabel: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textMuted, marginBottom: 2 },
+  qrMetaValue: { fontSize: fontSize.sm, color: theme.textSecondary },
   qrActions: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md, width: "100%" },
   shareBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, backgroundColor: colors.brand[50], borderWidth: 1, borderColor: colors.brand[100] },
   shareBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.brand[700] },
-  copyBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, backgroundColor: colors.runway[100], borderWidth: 1, borderColor: colors.runway[200] },
-  copyBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[700] },
+  copyBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: spacing.sm + 4, borderRadius: borderRadius.md, backgroundColor: theme.borderLight, borderWidth: 1, borderColor: theme.border },
+  copyBtnText: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textSecondary },
   placeholder: { alignItems: "center", paddingTop: spacing["3xl"] },
-  placeholderIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.runway[100], alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
-  placeholderTitle: { fontSize: fontSize.lg, fontWeight: "600", color: colors.runway[700] },
-  placeholderSub: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.xs, textAlign: "center" },
+  placeholderIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: theme.borderLight, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
+  placeholderTitle: { fontSize: fontSize.lg, fontWeight: "600", color: theme.textSecondary },
+  placeholderSub: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: spacing.xs, textAlign: "center" },
 });

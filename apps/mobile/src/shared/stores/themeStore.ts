@@ -1,13 +1,19 @@
 /**
- * Theme Store — manages dark/light mode with persistence.
+ * Theme Store — manages dark/light/system mode with persistence.
  */
 
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
+import { Appearance } from "react-native";
 
-const THEME_KEY = "fpl4flight_theme_mode";
+import { THEME_MODE_KEY } from "@shared/constants";
 
-type ThemeMode = "light" | "dark" | "system";
+export type ThemeMode = "light" | "dark" | "system";
+
+function resolveIsDark(mode: ThemeMode): boolean {
+  if (mode === "system") return Appearance.getColorScheme() === "dark";
+  return mode === "dark";
+}
 
 interface ThemeState {
   mode: ThemeMode;
@@ -16,36 +22,33 @@ interface ThemeState {
   loadSavedTheme: () => Promise<void>;
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
+export const useThemeStore = create<ThemeState>((set, get) => ({
   mode: "light",
   isDark: false,
 
   setMode: (mode) => {
-    const isDark = mode === "dark";
+    const isDark = resolveIsDark(mode);
     set({ mode, isDark });
-    SecureStore.setItemAsync(THEME_KEY, mode).catch(() => {});
+    SecureStore.setItemAsync(THEME_MODE_KEY, mode).catch(() => {});
   },
 
   loadSavedTheme: async () => {
     try {
-      const saved = await SecureStore.getItemAsync(THEME_KEY);
+      const saved = await SecureStore.getItemAsync(THEME_MODE_KEY);
       if (saved === "dark" || saved === "light" || saved === "system") {
-        set({ mode: saved as ThemeMode, isDark: saved === "dark" });
+        const mode = saved as ThemeMode;
+        set({ mode, isDark: resolveIsDark(mode) });
       }
     } catch {
-      // Use default
+      // Use defaults
     }
   },
 }));
 
-/** Dark mode colors (inverted runway palette) */
-export const darkColors = {
-  background: "#0f172a",
-  surface: "#1e293b",
-  surfaceElevated: "#334155",
-  text: "#f8fafc",
-  textSecondary: "#94a3b8",
-  textMuted: "#64748b",
-  border: "#334155",
-  borderLight: "#1e293b",
-} as const;
+// Keep "system" mode in sync with the OS appearance while the app is running.
+Appearance.addChangeListener(() => {
+  const { mode } = useThemeStore.getState();
+  if (mode === "system") {
+    useThemeStore.setState({ isDark: Appearance.getColorScheme() === "dark" });
+  }
+});

@@ -4,8 +4,10 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { APP_NAME, SUPPORT_EMAIL } from "@shared/constants";
 
 type BillingCycle = "monthly" | "yearly";
 
@@ -25,7 +27,9 @@ const PLANS = {
 export default function BillingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors: theme } = useAppTheme();
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const styles = createStyles(theme);
 
   const plans = PLANS[cycle];
 
@@ -34,22 +38,17 @@ export default function BillingScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       `Upgrade to ${planName}`,
-      "In-app purchases are processed through the Google Play Store. You'll be redirected to complete your subscription.",
+      "In-app purchases are not yet available in the store. You can reach our team to complete your subscription once it launches.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Continue",
+          text: "Contact Sales",
           onPress: () => {
-            // In production, this calls RevenueCat/Google Play Billing
-            // For now, show a placeholder message
-            Alert.alert(
-              "Coming Soon",
-              "Subscription purchases will be available once the app is published on the Play Store. Contact support@fpl4flight.io for early access.",
-              [
-                { text: "OK" },
-                { text: "Contact Support", onPress: () => Linking.openURL("mailto:support@fpl4flight.io?subject=Pro%20Subscription%20Inquiry") },
-              ]
-            );
+            const subject = encodeURIComponent(`${APP_NAME} ${planName} Subscription Inquiry`);
+            const body = encodeURIComponent(`Hi team,\n\nI'd like to upgrade to the ${planName} plan.\n\nThanks!`);
+            Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`).catch(() => {
+              Alert.alert("Unable to Open Mail", `Please email us directly at ${SUPPORT_EMAIL}.`);
+            });
           },
         },
       ]
@@ -59,7 +58,7 @@ export default function BillingScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={20} color={colors.brand[600]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Plans & Billing</Text>
@@ -135,61 +134,62 @@ export default function BillingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: spacing.md, paddingVertical: 14,
-    backgroundColor: colors.white, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.runway[200],
-  },
-  backBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900] },
-  // Toggle
-  toggleWrapper: { alignItems: "center", paddingVertical: spacing.lg },
-  toggle: {
-    flexDirection: "row", backgroundColor: colors.runway[100],
-    borderRadius: 24, padding: 3,
-  },
-  toggleBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 22,
-  },
-  toggleBtnActive: { backgroundColor: colors.white, shadowColor: colors.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  toggleText: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[500] },
-  toggleTextActive: { color: colors.runway[900] },
-  saveBadge: { backgroundColor: colors.green[500], paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  saveBadgeText: { fontSize: 9, fontWeight: "700", color: colors.white },
-  // Plan Card
-  planCard: {
-    backgroundColor: colors.white, marginHorizontal: spacing.md, marginBottom: spacing.md,
-    borderRadius: borderRadius.lg, padding: spacing.lg,
-    borderWidth: 1, borderColor: colors.runway[200],
-  },
-  planCardPopular: { borderColor: colors.brand[400], borderWidth: 2 },
-  popularTag: {
-    position: "absolute", top: -11, alignSelf: "center",
-    backgroundColor: colors.brand[600], paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10,
-  },
-  popularTagText: { fontSize: 10, fontWeight: "700", color: colors.white, letterSpacing: 0.3 },
-  planTop: { marginBottom: spacing.md },
-  planName: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[500], textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
-  priceRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
-  planPrice: { fontSize: 32, fontWeight: "800", color: colors.runway[900], letterSpacing: -1 },
-  planSub: { fontSize: fontSize.sm, color: colors.runway[400] },
-  // Features
-  featuresList: { gap: 8, marginBottom: spacing.lg },
-  featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  featureText: { fontSize: fontSize.sm, color: colors.runway[700] },
-  // CTA
-  ctaBtn: {
-    alignItems: "center", paddingVertical: 14, borderRadius: borderRadius.md,
-    backgroundColor: colors.runway[100],
-  },
-  ctaBtnCurrent: { backgroundColor: colors.runway[50], borderWidth: 1, borderColor: colors.runway[200] },
-  ctaBtnPopular: { backgroundColor: colors.brand[600] },
-  ctaText: { fontSize: fontSize.sm, fontWeight: "700", color: colors.runway[600] },
-  ctaTextCurrent: { color: colors.runway[400] },
-  ctaTextPopular: { color: colors.white },
-  // Footer
-  footer: { textAlign: "center", fontSize: fontSize.xs, color: colors.runway[400], paddingHorizontal: spacing.xl, marginTop: spacing.sm, lineHeight: 18 },
-});
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: {
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      paddingHorizontal: spacing.md, paddingVertical: 14,
+      backgroundColor: theme.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border,
+    },
+    backBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+    headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: theme.textPrimary },
+    // Toggle
+    toggleWrapper: { alignItems: "center", paddingVertical: spacing.lg },
+    toggle: {
+      flexDirection: "row", backgroundColor: theme.borderLight,
+      borderRadius: 24, padding: 3,
+    },
+    toggleBtn: {
+      flexDirection: "row", alignItems: "center", gap: 6,
+      paddingHorizontal: 20, paddingVertical: 10, borderRadius: 22,
+    },
+    toggleBtnActive: { backgroundColor: theme.surface, shadowColor: colors.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+    toggleText: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textMuted },
+    toggleTextActive: { color: theme.textPrimary },
+    saveBadge: { backgroundColor: colors.green[500], paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+    saveBadgeText: { fontSize: 9, fontWeight: "700", color: colors.white },
+    // Plan Card
+    planCard: {
+      backgroundColor: theme.surface, marginHorizontal: spacing.md, marginBottom: spacing.md,
+      borderRadius: borderRadius.lg, padding: spacing.lg,
+      borderWidth: 1, borderColor: theme.border,
+    },
+    planCardPopular: { borderColor: colors.brand[400], borderWidth: 2 },
+    popularTag: {
+      position: "absolute", top: -11, alignSelf: "center",
+      backgroundColor: colors.brand[600], paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10,
+    },
+    popularTagText: { fontSize: 10, fontWeight: "700", color: colors.white, letterSpacing: 0.3 },
+    planTop: { marginBottom: spacing.md },
+    planName: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
+    priceRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+    planPrice: { fontSize: 32, fontWeight: "800", color: theme.textPrimary, letterSpacing: -1 },
+    planSub: { fontSize: fontSize.sm, color: theme.textMuted },
+    // Features
+    featuresList: { gap: 8, marginBottom: spacing.lg },
+    featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+    featureText: { fontSize: fontSize.sm, color: theme.textSecondary },
+    // CTA
+    ctaBtn: {
+      alignItems: "center", paddingVertical: 14, borderRadius: borderRadius.md,
+      backgroundColor: theme.borderLight,
+    },
+    ctaBtnCurrent: { backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border },
+    ctaBtnPopular: { backgroundColor: colors.brand[600] },
+    ctaText: { fontSize: fontSize.sm, fontWeight: "700", color: theme.textSecondary },
+    ctaTextCurrent: { color: theme.textMuted },
+    ctaTextPopular: { color: colors.white },
+    // Footer
+    footer: { textAlign: "center", fontSize: fontSize.xs, color: theme.textMuted, paddingHorizontal: spacing.xl, marginTop: spacing.sm, lineHeight: 18 },
+  });

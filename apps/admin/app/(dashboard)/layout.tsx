@@ -9,6 +9,7 @@ const navItems = [
   { href: "/users", label: "Users" },
   { href: "/subscriptions", label: "Subscriptions" },
   { href: "/audit", label: "Audit Log" },
+  { href: "/aip", label: "AIP Documents" },
 ] as const;
 
 type SessionUser = { email: string; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> };
@@ -80,7 +81,7 @@ export default async function DashboardLayout({
       >
         <div className="flex h-16 items-center border-b border-runway-700 px-6">
           <span className="text-lg font-semibold tracking-tight text-white">
-            PilotForms™
+            FPL4FLIGHT
           </span>
         </div>
 

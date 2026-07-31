@@ -3,11 +3,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useNotifications } from "@features/notifications/hooks/useNotifications";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { Card } from "@shared/components/Card";
 import { PressableScale } from "@shared/components/PressableScale";
 import { SkeletonCard } from "@shared/components/Skeleton";
 import { relativeTime } from "@shared/utils";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string }> = {
   form: { icon: "document-text-outline", color: colors.brand[600], bg: colors.brand[50] },
@@ -18,7 +19,9 @@ const TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string }> =
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const { notifications, isLoading, error, unreadCount, markRead, markAllRead } = useNotifications();
+  const styles = createStyles(theme);
 
   if (isLoading) {
     return (
@@ -92,7 +95,7 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIconBg}>
-              <Ionicons name="notifications-off-outline" size={40} color={colors.runway[400]} />
+              <Ionicons name="notifications-off-outline" size={40} color={theme.textMuted} />
             </View>
             <Text style={styles.emptyTitle}>All caught up!</Text>
             <Text style={styles.emptySub}>No new notifications</Text>
@@ -103,11 +106,12 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5 },
-  sub: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
+  title: { fontSize: 28, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.5 },
+  sub: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: 2 },
   markAllBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: spacing.xs, paddingHorizontal: spacing.sm, borderRadius: borderRadius.sm, backgroundColor: colors.brand[50] },
   markAll: { fontSize: fontSize.sm, fontWeight: "600", color: colors.brand[600] },
   errorBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.red[50], marginHorizontal: spacing.lg, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100] },
@@ -118,13 +122,13 @@ const styles = StyleSheet.create({
   notifIconBg: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", marginTop: 2 },
   notifContent: { flex: 1 },
   notifTitleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  notifTitle: { fontSize: fontSize.sm, fontWeight: "500", color: colors.runway[700], flex: 1 },
-  notifTitleUnread: { fontWeight: "700", color: colors.runway[900] },
+  notifTitle: { fontSize: fontSize.sm, fontWeight: "500", color: theme.textSecondary, flex: 1 },
+  notifTitleUnread: { fontWeight: "700", color: theme.textPrimary },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand[500] },
-  notifBody: { fontSize: fontSize.xs, color: colors.runway[500], marginTop: 2, lineHeight: 18 },
-  notifTime: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: spacing.xs },
+  notifBody: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: 2, lineHeight: 18 },
+  notifTime: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: spacing.xs },
   empty: { alignItems: "center", paddingTop: spacing["3xl"] },
-  emptyIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.runway[100], alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
-  emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: colors.runway[700] },
-  emptySub: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.xs },
+  emptyIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: theme.borderLight, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
+  emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: theme.textSecondary },
+  emptySub: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: spacing.xs },
 });

@@ -7,7 +7,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
 
 interface LocationData {
   latitude: number;
@@ -20,6 +21,7 @@ interface LocationData {
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const mapRef = useRef<MapView>(null);
 
   const [location, setLocation] = useState<LocationData | null>(null);
@@ -81,6 +83,7 @@ export default function MapScreen() {
   const altFt = location?.altitude ? Math.round(location.altitude * 3.28084) : 0;
   const hdgDeg = Math.round(heading);
   const [mapType, setMapType] = useState<"standard" | "satellite" | "hybrid">("standard");
+  const styles = createStyles(theme);
 
   function centerOnMe() {
     if (location) mapRef.current?.animateToRegion({ latitude: location.latitude, longitude: location.longitude, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 500);
@@ -131,11 +134,11 @@ export default function MapScreen() {
         {/* Floating search bar */}
         <View style={[styles.searchFloat, { top: spacing.sm }]}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={16} color={colors.runway[400]} />
+            <Ionicons name="search" size={16} color={theme.textMuted} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search airports..."
-              placeholderTextColor={colors.runway[400]}
+              placeholderTextColor={theme.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="characters"
@@ -151,9 +154,9 @@ export default function MapScreen() {
 
         {/* Flight data strip — left side */}
         <View style={styles.dataStrip}>
-          <DataChip label="SPD" value={`${speedKn}`} unit="kn" />
-          <DataChip label="ALT" value={`${altFt}`} unit="ft" />
-          <DataChip label="HDG" value={`${hdgDeg}`} unit="°" />
+          <DataChip label="SPD" value={`${speedKn}`} unit="kn" styles={styles} />
+          <DataChip label="ALT" value={`${altFt}`} unit="ft" styles={styles} />
+          <DataChip label="HDG" value={`${hdgDeg}`} unit="°" styles={styles} />
         </View>
 
         {/* Controls — right side */}
@@ -165,10 +168,10 @@ export default function MapScreen() {
             <Ionicons name="locate" size={20} color={colors.brand[600]} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.ctrlBtn} onPress={() => mapRef.current?.getCamera().then(c => { if (c.zoom !== undefined) mapRef.current?.animateCamera({ zoom: c.zoom + 1 }, { duration: 200 }); })} accessibilityLabel="Zoom in">
-            <Ionicons name="add" size={20} color={colors.runway[700]} />
+            <Ionicons name="add" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.ctrlBtn} onPress={() => mapRef.current?.getCamera().then(c => { if (c.zoom !== undefined) mapRef.current?.animateCamera({ zoom: Math.max(1, c.zoom - 1) }, { duration: 200 }); })} accessibilityLabel="Zoom out">
-            <Ionicons name="remove" size={20} color={colors.runway[700]} />
+            <Ionicons name="remove" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -198,7 +201,7 @@ export default function MapScreen() {
   );
 }
 
-function DataChip({ label, value, unit }: { label: string; value: string; unit: string }) {
+function DataChip({ label, value, unit, styles }: { label: string; value: string; unit: string; styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.dataChip}>
       <Text style={styles.dataLabel}>{label}</Text>
@@ -210,38 +213,39 @@ function DataChip({ label, value, unit }: { label: string; value: string; unit: 
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[900] },
-  mapWrap: { flex: 1, position: "relative" },
-  // Marker
-  markerWrap: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  markerPulse: { position: "absolute", width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand[400], opacity: 0.2 },
-  markerCore: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center", shadowColor: colors.brand[600], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
-  // Search
-  searchFloat: { position: "absolute", left: spacing.md, right: spacing.md },
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: colors.white, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10, shadowColor: colors.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 },
-  searchInput: { flex: 1, fontSize: fontSize.sm, color: colors.runway[900], padding: 0 },
-  // Data strip
-  dataStrip: { position: "absolute", left: spacing.sm, top: 70, gap: 6 },
-  dataChip: { backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, minWidth: 64, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
-  dataLabel: { fontSize: 9, fontWeight: "700", color: colors.runway[400], letterSpacing: 0.5 },
-  dataRow: { flexDirection: "row", alignItems: "baseline", gap: 2 },
-  dataValue: { fontSize: fontSize.lg, fontWeight: "800", color: colors.runway[900] },
-  dataUnit: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[400] },
-  // Controls
-  controls: { position: "absolute", right: spacing.sm, bottom: spacing.md, gap: 8 },
-  ctrlBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.95)", alignItems: "center", justifyContent: "center", shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
-  // Compass
-  compassWrap: { position: "absolute", left: spacing.sm, top: 65, alignItems: "center", backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 10, padding: 8, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
-  compassNeedle: { width: 28, height: 28, alignItems: "center", justifyContent: "flex-start" },
-  compassN: { width: 4, height: 12, backgroundColor: colors.red[600], borderRadius: 2 },
-  compassText: { fontSize: 9, fontWeight: "700", color: colors.runway[600], marginTop: 2 },
-  // Bottom bar
-  bottomBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, paddingHorizontal: spacing.md, backgroundColor: colors.white, gap: spacing.md },
-  coordsText: { fontSize: 10, fontWeight: "600", color: colors.runway[500], fontFamily: "monospace" },
-  bottomRight: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  disclaimer: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[400] },
-  gpsChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.amber[50], paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  gpsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.amber[500] },
-  gpsText: { fontSize: 9, fontWeight: "700", color: colors.amber[600] },
-});
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.textPrimary },
+    mapWrap: { flex: 1, position: "relative" },
+    // Marker
+    markerWrap: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+    markerPulse: { position: "absolute", width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand[400], opacity: 0.2 },
+    markerCore: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center", shadowColor: colors.brand[600], shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 4 },
+    // Search
+    searchFloat: { position: "absolute", left: spacing.md, right: spacing.md },
+    searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10, shadowColor: colors.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 },
+    searchInput: { flex: 1, fontSize: fontSize.sm, color: theme.textPrimary, padding: 0 },
+    // Data strip
+    dataStrip: { position: "absolute", left: spacing.sm, top: 70, gap: 6 },
+    dataChip: { backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, minWidth: 64, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
+    dataLabel: { fontSize: 9, fontWeight: "700", color: theme.textMuted, letterSpacing: 0.5 },
+    dataRow: { flexDirection: "row", alignItems: "baseline", gap: 2 },
+    dataValue: { fontSize: fontSize.lg, fontWeight: "800", color: theme.textPrimary },
+    dataUnit: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textMuted },
+    // Controls
+    controls: { position: "absolute", right: spacing.sm, bottom: spacing.md, gap: 8 },
+    ctrlBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.95)", alignItems: "center", justifyContent: "center", shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
+    // Compass
+    compassWrap: { position: "absolute", left: spacing.sm, top: 65, alignItems: "center", backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 10, padding: 8, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
+    compassNeedle: { width: 28, height: 28, alignItems: "center", justifyContent: "flex-start" },
+    compassN: { width: 4, height: 12, backgroundColor: colors.red[600], borderRadius: 2 },
+    compassText: { fontSize: 9, fontWeight: "700", color: theme.textSecondary, marginTop: 2 },
+    // Bottom bar
+    bottomBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, paddingHorizontal: spacing.md, backgroundColor: theme.surface, gap: spacing.md },
+    coordsText: { fontSize: 10, fontWeight: "600", color: theme.textMuted, fontFamily: "monospace" },
+    bottomRight: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    disclaimer: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textMuted },
+    gpsChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.amber[50], paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    gpsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.amber[500] },
+    gpsText: { fontSize: 9, fontWeight: "700", color: colors.amber[600] },
+  });

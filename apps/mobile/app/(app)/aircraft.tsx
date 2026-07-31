@@ -15,9 +15,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
 import { aircraftRepository, type AircraftData, type CreateAircraftDto } from "@features/aircraft/repositories/AircraftRepository";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
 
 type WakeTurbulenceCategory = "L" | "M" | "H";
 
@@ -35,6 +36,7 @@ const EMPTY_FORM: CreateAircraftDto = {
 
 export default function AircraftScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const [aircraftList, setAircraftList] = useState<AircraftData[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingAircraft, setEditingAircraft] = useState<AircraftData | null>(null);
@@ -43,6 +45,8 @@ export default function AircraftScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const successScale = useRef(new Animated.Value(0)).current;
   const successOpacity = useRef(new Animated.Value(0)).current;
+  const styles = createStyles(theme);
+  const formStyles = createFormStyles(theme);
 
   const loadAircraft = useCallback(async () => {
     setIsLoading(true);
@@ -204,9 +208,9 @@ export default function AircraftScreen() {
                   </View>
                 </View>
                 <View style={styles.cardDetails}>
-                  <View style={styles.detailChip}><Ionicons name="hardware-chip-outline" size={12} color={colors.runway[400]} /><Text style={styles.detailText}>EQP: {item.equipment || "—"}</Text></View>
-                  <View style={styles.detailChip}><Ionicons name="radio-outline" size={12} color={colors.runway[400]} /><Text style={styles.detailText}>SURV: {item.surveillance || "—"}</Text></View>
-                  <View style={styles.detailChip}><Ionicons name="fitness-outline" size={12} color={colors.runway[400]} /><Text style={styles.detailText}>WTC: {wtcLabel}</Text></View>
+                  <View style={styles.detailChip}><Ionicons name="hardware-chip-outline" size={12} color={theme.textMuted} /><Text style={styles.detailText}>EQP: {item.equipment || "—"}</Text></View>
+                  <View style={styles.detailChip}><Ionicons name="radio-outline" size={12} color={theme.textMuted} /><Text style={styles.detailText}>SURV: {item.surveillance || "—"}</Text></View>
+                  <View style={styles.detailChip}><Ionicons name="fitness-outline" size={12} color={theme.textMuted} /><Text style={styles.detailText}>WTC: {wtcLabel}</Text></View>
                 </View>
               </PressableScale>
             );
@@ -220,6 +224,7 @@ export default function AircraftScreen() {
           initialData={editingAircraft ?? undefined}
           onSave={handleSave}
           onCancel={() => { setShowForm(false); setEditingAircraft(null); }}
+          styles={formStyles}
         />
       </Modal>
 
@@ -253,12 +258,15 @@ function AircraftForm({
   initialData,
   onSave,
   onCancel,
+  styles,
 }: {
   initialData?: CreateAircraftDto | undefined;
   onSave: (data: CreateAircraftDto) => void;
   onCancel: () => void;
+  styles: ReturnType<typeof createFormStyles>;
 }) {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const [form, setForm] = useState<CreateAircraftDto>(initialData ?? EMPTY_FORM);
 
   function updateField<K extends keyof CreateAircraftDto>(key: K, value: CreateAircraftDto[K]) {
@@ -303,17 +311,17 @@ function AircraftForm({
   }
 
   return (
-    <View style={[formStyles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Form Header */}
-      <View style={formStyles.header}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={onCancel} accessibilityLabel="Cancel">
-          <Text style={formStyles.cancelText}>Cancel</Text>
+          <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={formStyles.headerTitle}>
+        <Text style={styles.headerTitle}>
           {initialData ? "Edit Aircraft" : "New Aircraft"}
         </Text>
-        <TouchableOpacity onPress={handleSave} style={formStyles.saveBtn} accessibilityLabel="Save aircraft">
-          <Text style={formStyles.saveBtnText}>Save</Text>
+        <TouchableOpacity onPress={handleSave} style={styles.saveBtn} accessibilityLabel="Save aircraft">
+          <Text style={styles.saveBtnText}>Save</Text>
         </TouchableOpacity>
       </View>
 
@@ -323,13 +331,13 @@ function AircraftForm({
         keyboardShouldPersistTaps="handled"
       >
         {/* Identification Card */}
-        <View style={formStyles.card}>
-          <Text style={formStyles.cardLabel}>IDENTIFICATION</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>IDENTIFICATION</Text>
 
-          <View style={formStyles.inputGroup}>
-            <Text style={formStyles.inputLabel}>Aircraft ID</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Aircraft ID</Text>
             <TextInput
-              style={formStyles.textInput}
+              style={styles.textInput}
               value={form.aircraftId}
               onChangeText={(v) => updateField("aircraftId", v)}
               placeholder="e.g. RP-C1234"
@@ -338,10 +346,10 @@ function AircraftForm({
             />
           </View>
 
-          <View style={formStyles.inputGroup}>
-            <Text style={formStyles.inputLabel}>Type of aircraft</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Type of aircraft</Text>
             <TextInput
-              style={formStyles.textInput}
+              style={styles.textInput}
               value={form.typeOfAircraft}
               onChangeText={(v) => updateField("typeOfAircraft", v)}
               placeholder="e.g. C172"
@@ -350,15 +358,15 @@ function AircraftForm({
             />
           </View>
 
-          <View style={formStyles.inputGroup}>
-            <Text style={formStyles.inputLabel}>Wake turbulence category</Text>
-            <View style={formStyles.segmentedControl}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Wake turbulence category</Text>
+            <View style={styles.segmentedControl}>
               {(["L", "M", "H"] as WakeTurbulenceCategory[]).map((cat) => (
                 <TouchableOpacity
                   key={cat}
                   style={[
-                    formStyles.segment,
-                    form.wakeTurbulenceCategory === cat && formStyles.segmentActive,
+                    styles.segment,
+                    form.wakeTurbulenceCategory === cat && styles.segmentActive,
                   ]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -367,8 +375,8 @@ function AircraftForm({
                 >
                   <Text
                     style={[
-                      formStyles.segmentText,
-                      form.wakeTurbulenceCategory === cat && formStyles.segmentTextActive,
+                      styles.segmentText,
+                      form.wakeTurbulenceCategory === cat && styles.segmentTextActive,
                     ]}
                   >
                     {cat}
@@ -380,18 +388,18 @@ function AircraftForm({
         </View>
 
         {/* Equipment Card */}
-        <View style={formStyles.card}>
-          <Text style={formStyles.cardLabel}>EQUIPMENT</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>EQUIPMENT</Text>
 
-          <View style={formStyles.inputGroup}>
-            <View style={formStyles.inputLabelRow}>
-              <Text style={formStyles.inputLabel}>Equipment</Text>
+          <View style={styles.inputGroup}>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>Equipment</Text>
               <TouchableOpacity onPress={() => showHelp("Equipment")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="information-circle-outline" size={18} color={colors.runway[400]} />
+                <Ionicons name="information-circle-outline" size={18} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
             <TextInput
-              style={formStyles.textInput}
+              style={styles.textInput}
               value={form.equipment}
               onChangeText={(v) => updateField("equipment", v)}
               placeholder="e.g. SDFGR"
@@ -400,15 +408,15 @@ function AircraftForm({
             />
           </View>
 
-          <View style={formStyles.inputGroup}>
-            <View style={formStyles.inputLabelRow}>
-              <Text style={formStyles.inputLabel}>Surveillance</Text>
+          <View style={styles.inputGroup}>
+            <View style={styles.inputLabelRow}>
+              <Text style={styles.inputLabel}>Surveillance</Text>
               <TouchableOpacity onPress={() => showHelp("Surveillance")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="information-circle-outline" size={18} color={colors.runway[400]} />
+                <Ionicons name="information-circle-outline" size={18} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
             <TextInput
-              style={formStyles.textInput}
+              style={styles.textInput}
               value={form.surveillance}
               onChangeText={(v) => updateField("surveillance", v)}
               placeholder="e.g. SC"
@@ -419,40 +427,40 @@ function AircraftForm({
         </View>
 
         {/* Emergency & Survival Card */}
-        <View style={formStyles.card}>
-          <Text style={formStyles.cardLabel}>EMERGENCY & SURVIVAL</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>EMERGENCY & SURVIVAL</Text>
 
-          <Text style={formStyles.subSectionTitle}>Emergency radio</Text>
-          <View style={formStyles.chipRow}>
+          <Text style={styles.subSectionTitle}>Emergency radio</Text>
+          <View style={styles.chipRow}>
             <ChipToggle label="UHF" active={form.emergencyRadio.uhf} onPress={() => toggleNested("emergencyRadio", "uhf")} />
             <ChipToggle label="VHF" active={form.emergencyRadio.vhf} onPress={() => toggleNested("emergencyRadio", "vhf")} />
             <ChipToggle label="ELT" active={form.emergencyRadio.elt} onPress={() => toggleNested("emergencyRadio", "elt")} />
           </View>
 
-          <View style={formStyles.divider} />
+          <View style={styles.divider} />
 
-          <Text style={formStyles.subSectionTitle}>Survival equipment</Text>
-          <View style={formStyles.chipRow}>
+          <Text style={styles.subSectionTitle}>Survival equipment</Text>
+          <View style={styles.chipRow}>
             <ChipToggle label="Polar" active={form.survivalEquipment.polar} onPress={() => toggleNested("survivalEquipment", "polar")} />
             <ChipToggle label="Maritime" active={form.survivalEquipment.maritime} onPress={() => toggleNested("survivalEquipment", "maritime")} />
             <ChipToggle label="Desert" active={form.survivalEquipment.desert} onPress={() => toggleNested("survivalEquipment", "desert")} />
             <ChipToggle label="Jungle" active={form.survivalEquipment.jungle} onPress={() => toggleNested("survivalEquipment", "jungle")} />
           </View>
 
-          <View style={formStyles.divider} />
+          <View style={styles.divider} />
 
-          <Text style={formStyles.subSectionTitle}>Jackets</Text>
-          <View style={formStyles.chipRow}>
+          <Text style={styles.subSectionTitle}>Jackets</Text>
+          <View style={styles.chipRow}>
             <ChipToggle label="Light" active={form.jackets.light} onPress={() => toggleNested("jackets", "light")} />
             <ChipToggle label="Fluores" active={form.jackets.fluores} onPress={() => toggleNested("jackets", "fluores")} />
             <ChipToggle label="UHF" active={form.jackets.uhf} onPress={() => toggleNested("jackets", "uhf")} />
             <ChipToggle label="VHF" active={form.jackets.vhf} onPress={() => toggleNested("jackets", "vhf")} />
           </View>
 
-          <View style={formStyles.divider} />
+          <View style={styles.divider} />
 
-          <Text style={formStyles.subSectionTitle}>Dinghies</Text>
-          <View style={formStyles.chipRow}>
+          <Text style={styles.subSectionTitle}>Dinghies</Text>
+          <View style={styles.chipRow}>
             <ChipToggle label="Dinghies" active={form.dinghies.dinghies} onPress={() => toggleNested("dinghies", "dinghies")} />
             <ChipToggle label="Cover" active={form.dinghies.cover} onPress={() => toggleNested("dinghies", "cover")} />
           </View>
@@ -464,25 +472,28 @@ function AircraftForm({
 
 /** Chip toggle */
 function ChipToggle({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  const { colors: theme } = useAppTheme();
+  const styles = createFormStyles(theme);
   return (
     <TouchableOpacity
-      style={[formStyles.chip, active && formStyles.chipActive]}
+      style={[styles.chip, active && styles.chipActive]}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityLabel={label}
       accessibilityState={{ selected: active }}
     >
       {active && <Ionicons name="checkmark" size={14} color={colors.white} style={{ marginRight: 4 }} />}
-      <Text style={[formStyles.chipText, active && formStyles.chipTextActive]}>{label}</Text>
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
 // ─── List Styles ───────────────────────────────────────────
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.runway[50],
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: "row",
@@ -490,19 +501,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.runway[200],
+    borderBottomColor: theme.border,
   },
   headerTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: colors.runway[900],
+    color: theme.textPrimary,
     letterSpacing: -0.5,
   },
   headerSub: {
     fontSize: fontSize.sm,
-    color: colors.runway[400],
+    color: theme.textMuted,
     marginTop: 2,
   },
   addBtn: {
@@ -529,7 +540,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: colors.runway[100],
+    backgroundColor: theme.borderLight,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.lg,
@@ -537,18 +548,18 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: fontSize.lg,
     fontWeight: "600",
-    color: colors.runway[700],
+    color: theme.textSecondary,
     marginBottom: spacing.xs,
   },
   emptySub: {
     fontSize: fontSize.sm,
-    color: colors.runway[400],
+    color: theme.textMuted,
     textAlign: "center",
     lineHeight: 20,
   },
   // Aircraft card
   aircraftCard: {
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginTop: spacing.sm,
@@ -558,7 +569,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: colors.runway[100],
+    borderColor: theme.borderLight,
   },
   cardTop: {
     flexDirection: "row",
@@ -580,12 +591,12 @@ const styles = StyleSheet.create({
   cardId: {
     fontSize: fontSize.lg,
     fontWeight: "800",
-    color: colors.runway[900],
+    color: theme.textPrimary,
     letterSpacing: 0.5,
   },
   cardType: {
     fontSize: fontSize.sm,
-    color: colors.runway[500],
+    color: theme.textMuted,
     marginTop: 2,
   },
   wtcBadge: {
@@ -606,20 +617,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.runway[100],
+    borderTopColor: theme.borderLight,
   },
   detailChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: colors.runway[50],
+    backgroundColor: theme.background,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   detailText: {
     fontSize: fontSize.xs,
-    color: colors.runway[600],
+    color: theme.textSecondary,
     fontWeight: "500",
   },
   // Success overlay
@@ -653,10 +664,11 @@ const styles = StyleSheet.create({
 });
 
 // ─── Form Styles ───────────────────────────────────────────
-const formStyles = StyleSheet.create({
+const createFormStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.runway[50],
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: "row",
@@ -664,19 +676,19 @@ const formStyles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.runway[200],
+    borderBottomColor: theme.border,
   },
   cancelText: {
     fontSize: fontSize.base,
-    color: colors.runway[500],
+    color: theme.textMuted,
     fontWeight: "500",
   },
   headerTitle: {
     fontSize: fontSize.lg,
     fontWeight: "700",
-    color: colors.runway[900],
+    color: theme.textPrimary,
     letterSpacing: -0.3,
   },
   saveBtn: {
@@ -696,7 +708,7 @@ const formStyles = StyleSheet.create({
     color: colors.white,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
     borderRadius: 16,
@@ -720,7 +732,7 @@ const formStyles = StyleSheet.create({
   inputLabel: {
     fontSize: fontSize.sm,
     fontWeight: "600",
-    color: colors.runway[700],
+    color: theme.textSecondary,
     marginBottom: 8,
   },
   inputLabelRow: {
@@ -730,18 +742,18 @@ const formStyles = StyleSheet.create({
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: colors.white,
+    backgroundColor: theme.surface,
     borderWidth: 1.5,
-    borderColor: colors.runway[200],
+    borderColor: theme.border,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     paddingVertical: 14,
     fontSize: fontSize.base,
-    color: colors.runway[900],
+    color: theme.textPrimary,
   },
   segmentedControl: {
     flexDirection: "row",
-    backgroundColor: colors.runway[100],
+    backgroundColor: theme.borderLight,
     borderRadius: 12,
     padding: 4,
   },
@@ -762,7 +774,7 @@ const formStyles = StyleSheet.create({
   segmentText: {
     fontSize: fontSize.base,
     fontWeight: "700",
-    color: colors.runway[400],
+    color: theme.textMuted,
   },
   segmentTextActive: {
     color: colors.white,
@@ -770,12 +782,12 @@ const formStyles = StyleSheet.create({
   subSectionTitle: {
     fontSize: fontSize.base,
     fontWeight: "700",
-    color: colors.runway[900],
+    color: theme.textPrimary,
     marginBottom: 12,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.runway[200],
+    backgroundColor: theme.border,
     marginVertical: spacing.lg,
   },
   chipRow: {
@@ -789,9 +801,9 @@ const formStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 24,
-    backgroundColor: colors.runway[100],
+    backgroundColor: theme.borderLight,
     borderWidth: 1.5,
-    borderColor: colors.runway[200],
+    borderColor: theme.border,
   },
   chipActive: {
     backgroundColor: colors.brand[600],
@@ -805,7 +817,7 @@ const formStyles = StyleSheet.create({
   chipText: {
     fontSize: fontSize.sm,
     fontWeight: "600",
-    color: colors.runway[500],
+    color: theme.textMuted,
   },
   chipTextActive: {
     color: colors.white,

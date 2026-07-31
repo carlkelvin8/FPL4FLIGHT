@@ -5,10 +5,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | PilotForms™ Admin",
-    default: "PilotForms™ Admin",
+    template: "%s | FPL4FLIGHT Admin",
+    default: "FPL4FLIGHT Admin",
   },
-  description: "PilotForms™ Admin Dashboard — Manage pilots, forms, and subscriptions.",
+  description: "FPL4FLIGHT Admin Dashboard — Manage pilots, forms, and subscriptions.",
 };
 
 interface RootLayoutProps {

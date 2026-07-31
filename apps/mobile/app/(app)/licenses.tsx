@@ -2,7 +2,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { APP_NAME } from "@shared/constants";
 
 const LICENSES = [
   { name: "React Native", version: "0.81.5", license: "MIT", author: "Meta Platforms" },
@@ -23,7 +25,9 @@ const LICENSES = [
 
 export default function LicensesScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const router = useRouter();
+  const styles = createStyles(theme);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -41,7 +45,7 @@ export default function LicensesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.intro}>
-          FPL4FLIGHT is built with the following open source libraries. We are grateful to the authors and communities behind these projects.
+          {APP_NAME} is built with the following open source libraries. We are grateful to the authors and communities behind these projects.
         </Text>
 
         {LICENSES.map((lib, i) => (
@@ -63,19 +67,20 @@ export default function LicensesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 14, backgroundColor: colors.white, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.runway[200] },
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 14, backgroundColor: theme.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 2, width: 70 },
   backText: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "500" },
-  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.3 },
-  intro: { fontSize: fontSize.sm, color: colors.runway[500], lineHeight: 20, marginBottom: spacing.lg, paddingHorizontal: spacing.xs },
-  licenseCard: { backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.3 },
+  intro: { fontSize: fontSize.sm, color: theme.textMuted, lineHeight: 20, marginBottom: spacing.lg, paddingHorizontal: spacing.xs },
+  licenseCard: { backgroundColor: theme.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
   licenseHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  libName: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[900] },
-  libVersion: { fontSize: fontSize.xs, color: colors.runway[400] },
+  libName: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textPrimary },
+  libVersion: { fontSize: fontSize.xs, color: theme.textMuted },
   licenseFooter: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   licenseBadge: { backgroundColor: colors.brand[50], paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
   licenseText: { fontSize: 10, fontWeight: "700", color: colors.brand[600] },
-  libAuthor: { fontSize: fontSize.xs, color: colors.runway[500] },
+  libAuthor: { fontSize: fontSize.xs, color: theme.textMuted },
 });

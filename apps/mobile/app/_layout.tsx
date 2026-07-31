@@ -9,7 +9,9 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useAuthStore } from "../src/features/auth/stores/authStore";
 import { secureStorage, SESSION_KEY, AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY } from "../src/core/storage";
 import { supabase } from "../src/core/network";
-import { colors } from "../src/shared/theme";
+import { colors, lightTheme, darkTheme } from "../src/shared/theme";
+import { APP_NAME } from "../src/shared/constants";
+import { useThemeStore } from "../src/shared/stores/themeStore";
 import { ErrorBoundary as ErrorBoundaryClass } from "../src/shared/components/ErrorBoundary";
 import { startSyncManager } from "../src/core/sync-manager";
 const ErrorBoundary = ErrorBoundaryClass as any;
@@ -102,13 +104,15 @@ function AuthSessionRestorer() {
 
 function LoadingOverlay() {
   const { isLoading } = useAuthStore();
+  const isDark = useThemeStore((s) => s.isDark);
+  const theme = isDark ? darkTheme : lightTheme;
 
   if (!isLoading) return null;
 
   return (
-    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(300)} style={styles.splash}>
+    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(300)} style={[styles.splash, { backgroundColor: theme.background }]}>
       <Text style={styles.splashIcon}>▲</Text>
-      <Text style={styles.splashText}>FPL4FLIGHT</Text>
+      <Text style={[styles.splashText, { color: theme.textPrimary }]}>{APP_NAME}</Text>
       <ActivityIndicator size="small" color={colors.brand[400]} style={{ marginTop: 16 }} />
     </Animated.View>
   );
@@ -116,6 +120,14 @@ function LoadingOverlay() {
 
 export default function RootLayout() {
   useProtectedRoute();
+
+  const isDark = useThemeStore((s) => s.isDark);
+  const theme = isDark ? darkTheme : lightTheme;
+
+  // Restore persisted theme preference before first paint
+  useEffect(() => {
+    useThemeStore.getState().loadSavedTheme();
+  }, []);
 
   // Start sync manager for offline support
   useEffect(() => {
@@ -127,7 +139,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
+          <StatusBar style={isDark ? "light" : "dark"} />
           <AuthSessionRestorer />
           <LoadingOverlay />
           <ErrorBoundary>
@@ -147,7 +159,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.runway[50],
     zIndex: 100,
   },
   splashIcon: {
@@ -158,7 +169,6 @@ const styles = StyleSheet.create({
   splashText: {
     fontSize: 24,
     fontWeight: "700",
-    color: colors.runway[900],
     letterSpacing: -0.5,
   },
 });

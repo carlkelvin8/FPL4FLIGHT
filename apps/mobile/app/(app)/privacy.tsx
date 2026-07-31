@@ -2,11 +2,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { APP_NAME } from "@shared/constants";
 
 export default function PrivacyScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const router = useRouter();
+  const styles = createStyles(theme);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -62,7 +66,7 @@ export default function PrivacyScreen() {
 
         <Text style={styles.sectionTitle}>8. Children's Privacy</Text>
         <Text style={styles.body}>
-          FPL4FLIGHT is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children.
+          {APP_NAME} is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children.
         </Text>
 
         <Text style={styles.sectionTitle}>9. Contact Us</Text>
@@ -74,13 +78,14 @@ export default function PrivacyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 14, backgroundColor: colors.white, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.runway[200] },
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 14, backgroundColor: theme.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 2, width: 70 },
   backText: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "500" },
-  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.3 },
-  lastUpdated: { fontSize: fontSize.sm, color: colors.runway[400], marginBottom: spacing.lg },
-  sectionTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.runway[900], marginTop: spacing.lg, marginBottom: spacing.sm },
-  body: { fontSize: fontSize.sm, color: colors.runway[600], lineHeight: 22 },
+  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.3 },
+  lastUpdated: { fontSize: fontSize.sm, color: theme.textMuted, marginBottom: spacing.lg },
+  sectionTitle: { fontSize: fontSize.base, fontWeight: "700", color: theme.textPrimary, marginTop: spacing.lg, marginBottom: spacing.sm },
+  body: { fontSize: fontSize.sm, color: theme.textSecondary, lineHeight: 22 },
 });

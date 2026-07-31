@@ -10,14 +10,17 @@ import { StatusBar } from "expo-status-bar";
 import Animated, { FadeInUp, FadeIn } from "react-native-reanimated";
 import { useAuth } from "@features/auth/hooks/useAuth";
 import { getPasswordStrength } from "@shared/utils/validationUtils";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { APP_NAME } from "@shared/constants";
 
 const STRENGTH = ["Weak", "Fair", "Good", "Strong"] as const;
 const STRENGTH_COLORS = [colors.red[500], colors.amber[500], colors.brand[500], colors.green[500]] as const;
 
 export default function RegisterScreen() {
   const { register, isLoading, error } = useAuth();
+  const { colors: theme, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
@@ -47,11 +50,12 @@ export default function RegisterScreen() {
   }
 
   const serverError = error?.message ?? null;
+  const styles = createStyles(theme);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.flex}>
-        <StatusBar style="dark" />
+      <View style={[styles.flex, { backgroundColor: theme.background }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <ScrollView
             contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing["2xl"] }]}
@@ -61,7 +65,7 @@ export default function RegisterScreen() {
             <Animated.View entering={FadeInUp.delay(100).duration(400)} style={styles.topSection}>
               <View style={styles.logo}>
                 <Text style={styles.logoIcon}>▲</Text>
-                <Text style={styles.brandName}>FPL4FLIGHT</Text>
+                <Text style={styles.brandName}>{APP_NAME}</Text>
               </View>
               <Text style={styles.title}>Create account</Text>
               <Text style={styles.subtitle}>Join the fleet</Text>
@@ -73,7 +77,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={[styles.input, errors.email && styles.inputError]}
                   placeholder="you@company.com"
-                  placeholderTextColor={colors.runway[400]}
+                  placeholderTextColor={theme.textMuted}
                   value={email}
                   onChangeText={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: "" })); }}
                   autoCapitalize="none" autoCorrect={false} keyboardType="email-address"
@@ -92,7 +96,7 @@ export default function RegisterScreen() {
                     ref={passwordRef}
                     style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
                     placeholder="Create a strong password"
-                    placeholderTextColor={colors.runway[400]}
+                    placeholderTextColor={theme.textMuted}
                     value={password}
                     onChangeText={(v) => { setPassword(v); setErrors((e) => ({ ...e, password: "" })); }}
                     secureTextEntry={!showPassword}
@@ -115,7 +119,7 @@ export default function RegisterScreen() {
                   <View style={styles.strengthRow} accessibilityLabel={`Strength: ${STRENGTH[strength]}`}>
                     <View style={styles.bars}>
                       {[0, 1, 2, 3].map((i) => (
-                        <View key={i} style={[styles.bar, { backgroundColor: i <= strength ? STRENGTH_COLORS[strength] : colors.runway[200] }]} />
+                        <View key={i} style={[styles.bar, { backgroundColor: i <= strength ? STRENGTH_COLORS[strength] : theme.border }]} />
                       ))}
                     </View>
                     <Text style={[styles.strengthLabel, { color: STRENGTH_COLORS[strength] }]}>{STRENGTH[strength]}</Text>
@@ -130,7 +134,7 @@ export default function RegisterScreen() {
                   ref={confirmRef}
                   style={[styles.input, errors.confirmPassword && styles.inputError]}
                   placeholder="Re-enter your password"
-                  placeholderTextColor={colors.runway[400]}
+                  placeholderTextColor={theme.textMuted}
                   value={confirmPassword}
                   onChangeText={(v) => { setConfirmPassword(v); setErrors((e) => ({ ...e, confirmPassword: "" })); }}
                   secureTextEntry={!showPassword}
@@ -174,43 +178,44 @@ export default function RegisterScreen() {
 
 const INPUT_HEIGHT = 50;
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  scroll: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing["2xl"] },
-  topSection: { alignItems: "center", marginBottom: spacing["2xl"] },
-  logo: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing["2xl"] },
-  logoIcon: { fontSize: 22, color: colors.brand[600] },
-  brandName: { fontSize: fontSize.xl, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.3 },
-  title: { fontSize: 32, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5, marginBottom: spacing.xs },
-  subtitle: { fontSize: fontSize.base, color: colors.runway[500], fontWeight: "400" },
-  form: { width: "100%" },
-  inputGroup: { marginBottom: spacing.md },
-  label: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[600], textTransform: "uppercase", letterSpacing: 0.8, marginBottom: spacing.sm },
-  input: {
-    height: INPUT_HEIGHT, backgroundColor: colors.runway[50], borderWidth: 1, borderColor: colors.runway[200],
-    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, fontSize: fontSize.base, color: colors.runway[900], fontWeight: "500",
-  },
-  inputError: { borderColor: colors.red[500] },
-  fieldError: { fontSize: fontSize.xs, color: colors.red[600], marginTop: spacing.xs + 2 },
-  passwordRow: { position: "relative", justifyContent: "center" },
-  passwordInput: { paddingRight: 60 },
-  eyeBtn: { position: "absolute", right: spacing.md },
-  eyeText: { fontSize: fontSize.xs, fontWeight: "600", color: colors.brand[600], textTransform: "uppercase", letterSpacing: 0.5 },
-  strengthRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 4, marginTop: spacing.sm + 2 },
-  bars: { flexDirection: "row", gap: spacing.xs, flex: 1 },
-  bar: { flex: 1, height: 4, borderRadius: 2 },
-  strengthLabel: { fontSize: fontSize.xs, fontWeight: "600", minWidth: 44, textAlign: "right" },
-  hint: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: spacing.xs + 2 },
-  errorBox: {
-    backgroundColor: colors.red[50], borderWidth: 1, borderColor: colors.red[100],
-    borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
-    marginBottom: spacing.md,
-  },
-  errorText: { fontSize: fontSize.sm, color: colors.red[700], fontWeight: "500" },
-  button: { height: INPUT_HEIGHT + 2, backgroundColor: colors.runway[900], borderRadius: borderRadius.md, alignItems: "center", justifyContent: "center" },
-  buttonMuted: { opacity: 0.5 },
-  buttonText: { color: colors.white, fontSize: fontSize.base, fontWeight: "600", letterSpacing: 0.3 },
-  footer: { flexDirection: "row", justifyContent: "center", marginTop: spacing.lg + spacing.sm },
-  footerText: { fontSize: fontSize.sm, color: colors.runway[500], fontWeight: "400" },
-  footerLink: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "600" },
-});
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    scroll: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingBottom: spacing["2xl"] },
+    topSection: { alignItems: "center", marginBottom: spacing["2xl"] },
+    logo: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing["2xl"] },
+    logoIcon: { fontSize: 22, color: colors.brand[600] },
+    brandName: { fontSize: fontSize.xl, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.3 },
+    title: { fontSize: 32, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.5, marginBottom: spacing.xs },
+    subtitle: { fontSize: fontSize.base, color: theme.textMuted, fontWeight: "400" },
+    form: { width: "100%" },
+    inputGroup: { marginBottom: spacing.md },
+    label: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textSecondary, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: spacing.sm },
+    input: {
+      height: INPUT_HEIGHT, backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border,
+      borderRadius: borderRadius.md, paddingHorizontal: spacing.md, fontSize: fontSize.base, color: theme.textPrimary, fontWeight: "500",
+    },
+    inputError: { borderColor: colors.red[500] },
+    fieldError: { fontSize: fontSize.xs, color: colors.red[600], marginTop: spacing.xs + 2 },
+    passwordRow: { position: "relative", justifyContent: "center" },
+    passwordInput: { paddingRight: 60 },
+    eyeBtn: { position: "absolute", right: spacing.md },
+    eyeText: { fontSize: fontSize.xs, fontWeight: "600", color: colors.brand[600], textTransform: "uppercase", letterSpacing: 0.5 },
+    strengthRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 4, marginTop: spacing.sm + 2 },
+    bars: { flexDirection: "row", gap: spacing.xs, flex: 1 },
+    bar: { flex: 1, height: 4, borderRadius: 2 },
+    strengthLabel: { fontSize: fontSize.xs, fontWeight: "600", minWidth: 44, textAlign: "right" },
+    hint: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: spacing.xs + 2 },
+    errorBox: {
+      backgroundColor: colors.red[50], borderWidth: 1, borderColor: colors.red[100],
+      borderRadius: borderRadius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+      marginBottom: spacing.md,
+    },
+    errorText: { fontSize: fontSize.sm, color: colors.red[700], fontWeight: "500" },
+    button: { height: INPUT_HEIGHT + 2, backgroundColor: colors.runway[900], borderRadius: borderRadius.md, alignItems: "center", justifyContent: "center" },
+    buttonMuted: { opacity: 0.5 },
+    buttonText: { color: colors.white, fontSize: fontSize.base, fontWeight: "600", letterSpacing: 0.3 },
+    footer: { flexDirection: "row", justifyContent: "center", marginTop: spacing.lg + spacing.sm },
+    footerText: { fontSize: fontSize.sm, color: theme.textMuted, fontWeight: "400" },
+    footerLink: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "600" },
+  });

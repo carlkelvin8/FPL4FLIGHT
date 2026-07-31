@@ -1,6 +1,6 @@
 /**
- * Shared hooks — useNetworkStatus, useDebounce, etc.
- * Built incrementally across Tasks 7–16.
+ * Shared hooks — theme, network status, debounce, etc.
  */
 
-export {};
+export { useAppTheme, useThemeStore } from "./useAppTheme";
+export type { ThemeMode } from "./useAppTheme";

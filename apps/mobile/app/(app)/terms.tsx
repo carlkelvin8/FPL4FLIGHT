@@ -2,11 +2,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { APP_NAME } from "@shared/constants";
 
 export default function TermsScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const router = useRouter();
+  const styles = createStyles(theme);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -27,12 +31,12 @@ export default function TermsScreen() {
 
         <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
         <Text style={styles.body}>
-          By accessing or using FPL4FLIGHT ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the App.
+          By accessing or using {APP_NAME} ("the App"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the App.
         </Text>
 
         <Text style={styles.sectionTitle}>2. Description of Service</Text>
         <Text style={styles.body}>
-          FPL4FLIGHT provides digital flight planning tools, aircraft management, and form submission services for aviation professionals. The App is intended as a supplementary tool and must not be used as the sole source for flight-critical decisions.
+          {APP_NAME} provides digital flight planning tools, aircraft management, and form submission services for aviation professionals. The App is intended as a supplementary tool and must not be used as the sole source for flight-critical decisions.
         </Text>
 
         <Text style={styles.sectionTitle}>3. User Accounts</Text>
@@ -47,17 +51,17 @@ export default function TermsScreen() {
 
         <Text style={styles.sectionTitle}>5. Intellectual Property</Text>
         <Text style={styles.body}>
-          All content, features, and functionality of FPL4FLIGHT are owned by FPL4FLIGHT and are protected by international copyright, trademark, and other intellectual property laws.
+          All content, features, and functionality of {APP_NAME} are owned by {APP_NAME} and are protected by international copyright, trademark, and other intellectual property laws.
         </Text>
 
         <Text style={styles.sectionTitle}>6. Disclaimer</Text>
         <Text style={styles.body}>
-          THE APP IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. FPL4FLIGHT DOES NOT GUARANTEE THE ACCURACY, COMPLETENESS, OR RELIABILITY OF ANY INFORMATION PROVIDED THROUGH THE APP. THE MAP AND NAVIGATION FEATURES MUST NOT BE USED FOR REAL FLIGHT OPERATIONS.
+          THE APP IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. {APP_NAME} DOES NOT GUARANTEE THE ACCURACY, COMPLETENESS, OR RELIABILITY OF ANY INFORMATION PROVIDED THROUGH THE APP. THE MAP AND NAVIGATION FEATURES MUST NOT BE USED FOR REAL FLIGHT OPERATIONS.
         </Text>
 
         <Text style={styles.sectionTitle}>7. Limitation of Liability</Text>
         <Text style={styles.body}>
-          FPL4FLIGHT shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the App, including but not limited to loss of data, revenue, or profits.
+          {APP_NAME} shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the App, including but not limited to loss of data, revenue, or profits.
         </Text>
 
         <Text style={styles.sectionTitle}>8. Changes to Terms</Text>
@@ -74,13 +78,14 @@ export default function TermsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 14, backgroundColor: colors.white, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.runway[200] },
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 14, backgroundColor: theme.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 2, width: 70 },
   backText: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "500" },
-  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.3 },
-  lastUpdated: { fontSize: fontSize.sm, color: colors.runway[400], marginBottom: spacing.lg },
-  sectionTitle: { fontSize: fontSize.base, fontWeight: "700", color: colors.runway[900], marginTop: spacing.lg, marginBottom: spacing.sm },
-  body: { fontSize: fontSize.sm, color: colors.runway[600], lineHeight: 22 },
+  headerTitle: { fontSize: fontSize.lg, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.3 },
+  lastUpdated: { fontSize: fontSize.sm, color: theme.textMuted, marginBottom: spacing.lg },
+  sectionTitle: { fontSize: fontSize.base, fontWeight: "700", color: theme.textPrimary, marginTop: spacing.lg, marginBottom: spacing.sm },
+  body: { fontSize: fontSize.sm, color: theme.textSecondary, lineHeight: 22 },
 });

@@ -1,6 +1,7 @@
 /**
  * Users feature module barrel.
- * User search, role management, and suspension are implemented in Task 27.
+ * User search and role management are implemented in Task 27.
  */
 
-export {};
+export { UsersRepository } from "./repository";
+export type { ProfileRow } from "./repository";

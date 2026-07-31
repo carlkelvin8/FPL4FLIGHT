@@ -7,26 +7,32 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTemplates } from "@features/forms/hooks/useTemplates";
 import { useForms } from "@features/forms/hooks/useForms";
-import { colors, spacing, borderRadius, fontSize, shadows } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, shadows, formTypeColors, type ThemeColors } from "@shared/theme";
 import { Card } from "@shared/components/Card";
 import { PressableScale } from "@shared/components/PressableScale";
 import { SkeletonCard } from "@shared/components/Skeleton";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
 
-  const FORM_TYPE_ICONS: Record<string, { icon: string; color: string; bg: string }> = {
-  "pre-flight": { icon: "airplane-outline", color: "#1e3a5f", bg: "#e0f2fe" },
-  "post-flight": { icon: "checkmark-done-outline", color: "#166534", bg: "#dcfce7" },
-  "weight-balance": { icon: "scale-outline", color: "#7c3aed", bg: "#f3e8ff" },
-  "maintenance": { icon: "construct-outline", color: "#b45309", bg: "#fef3c7" },
-  "operations": { icon: "people-outline", color: "#0369a1", bg: "#e0f2fe" },
-  "planning": { icon: "calculator-outline", color: "#be185d", bg: "#fce7f3" },
-} satisfies Record<string, { icon: string; color: string; bg: string }>;
+const FORM_TYPE_ICONS: Record<string, { icon: string }> = {
+  "pre-flight": { icon: "airplane-outline" },
+  "post-flight": { icon: "checkmark-done-outline" },
+  "weight-balance": { icon: "scale-outline" },
+  "maintenance": { icon: "construct-outline" },
+  "operations": { icon: "people-outline" },
+  "planning": { icon: "calculator-outline" },
+} satisfies Record<string, { icon: string }>;
+
+const FALLBACK_ICON = { icon: "people-outline" };
+const FALLBACK_COLORS = { color: "#0369a1", bg: "#e0f2fe" };
 
 export default function TemplatesScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const { templates, isLoading, error, refetch } = useTemplates();
   const { createForm } = useForms();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const styles = createStyles(theme);
 
   const filtered = templates.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -78,11 +84,11 @@ export default function TemplatesScreen() {
       </View>
 
       <View style={styles.searchRow}>
-        <Ionicons name="search-outline" size={18} color={colors.runway[400]} style={styles.searchIcon} />
+        <Ionicons name="search-outline" size={18} color={theme.textMuted} style={styles.searchIcon} />
         <TextInput
           style={styles.search}
           placeholder="Search templates..."
-          placeholderTextColor={colors.runway[400]}
+          placeholderTextColor={theme.textMuted}
           value={search}
           onChangeText={setSearch}
           autoCapitalize="none"
@@ -102,7 +108,8 @@ export default function TemplatesScreen() {
         keyExtractor={(i) => i.id}
         renderItem={({ item }) => {
           const formType = item.schema?.metadata?.formType ?? "operations";
-          const meta = (FORM_TYPE_ICONS[formType] ?? FORM_TYPE_ICONS.operations) as NonNullable<typeof FORM_TYPE_ICONS[string]>;
+          const iconMeta = FORM_TYPE_ICONS[formType] ?? FALLBACK_ICON;
+          const colorMeta = formTypeColors[formType] ?? FALLBACK_COLORS;
           const sectionCount = item.schema?.sections?.length ?? 0;
           const fieldCount = item.schema?.sections?.reduce((acc: number, s: { fields?: unknown[] }) => acc + (s.fields?.length ?? 0), 0) ?? 0;
           const estMins = item.schema?.metadata?.estimatedMinutes ?? "—";
@@ -116,8 +123,8 @@ export default function TemplatesScreen() {
             >
               <Card variant="elevated">
                 <View style={styles.cardRow}>
-                  <View style={[styles.iconBg, { backgroundColor: meta.bg }]}>  
-                    <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={22} color={meta.color} />
+                  <View style={[styles.iconBg, { backgroundColor: colorMeta.bg }]}>
+                    <Ionicons name={iconMeta.icon as keyof typeof Ionicons.glyphMap} size={22} color={colorMeta.color} />
                   </View>
                   <View style={styles.cardContent}>
                     <Text style={styles.cardName}>{item.name}</Text>
@@ -126,15 +133,15 @@ export default function TemplatesScreen() {
                     )}
                     <View style={styles.cardMeta}>
                       <View style={styles.metaChip}>
-                        <Ionicons name="layers-outline" size={12} color={colors.runway[500]} />
+                        <Ionicons name="layers-outline" size={12} color={theme.textMuted} />
                         <Text style={styles.metaText}>{sectionCount} sections</Text>
                       </View>
                       <View style={styles.metaChip}>
-                        <Ionicons name="list-outline" size={12} color={colors.runway[500]} />
+                        <Ionicons name="list-outline" size={12} color={theme.textMuted} />
                         <Text style={styles.metaText}>{fieldCount} fields</Text>
                       </View>
                       <View style={styles.metaChip}>
-                        <Ionicons name="time-outline" size={12} color={colors.runway[500]} />
+                        <Ionicons name="time-outline" size={12} color={theme.textMuted} />
                         <Text style={styles.metaText}>{estMins} min</Text>
                       </View>
                     </View>
@@ -156,7 +163,7 @@ export default function TemplatesScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIconBg}>
-              <Ionicons name="layers-outline" size={40} color={colors.runway[400]} />
+              <Ionicons name="layers-outline" size={40} color={theme.textMuted} />
             </View>
             <Text style={styles.emptyTitle}>No templates available</Text>
             <Text style={styles.emptySub}>
@@ -169,29 +176,30 @@ export default function TemplatesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5 },
-  count: { fontSize: fontSize.sm, color: colors.runway[400] },
-  searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  searchIcon: { position: "absolute", left: spacing.lg + spacing.sm, zIndex: 1 },
-  search: { flex: 1, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.runway[200], borderRadius: borderRadius.md, paddingHorizontal: spacing.lg + spacing.md, paddingVertical: spacing.sm + 2, fontSize: fontSize.base, color: colors.runway[900], ...shadows.sm },
-  errorBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.red[50], marginHorizontal: spacing.lg, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100] },
-  errorText: { fontSize: fontSize.sm, color: colors.red[700], flex: 1 },
-  list: { paddingHorizontal: spacing.lg },
-  templateCard: { marginBottom: spacing.sm },
-  cardRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  iconBg: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  cardContent: { flex: 1 },
-  cardName: { fontSize: fontSize.sm, fontWeight: "700", color: colors.runway[900] },
-  cardDesc: { fontSize: fontSize.xs, color: colors.runway[500], marginTop: 2 },
-  cardMeta: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs },
-  metaChip: { flexDirection: "row", alignItems: "center", gap: 3 },
-  metaText: { fontSize: 11, color: colors.runway[500] },
-  regulation: { fontSize: 10, color: colors.brand[600], fontWeight: "600", marginTop: 3 },
-  empty: { alignItems: "center", paddingTop: spacing["3xl"] },
-  emptyIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.runway[100], alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
-  emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: colors.runway[700] },
-  emptySub: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.xs, textAlign: "center", paddingHorizontal: spacing.xl },
-});
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
+    title: { fontSize: 28, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.5 },
+    count: { fontSize: fontSize.sm, color: theme.textMuted },
+    searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+    searchIcon: { position: "absolute", left: spacing.lg + spacing.sm, zIndex: 1 },
+    search: { flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, paddingHorizontal: spacing.lg + spacing.md, paddingVertical: spacing.sm + 2, fontSize: fontSize.base, color: theme.textPrimary, ...shadows.sm },
+    errorBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.red[50], marginHorizontal: spacing.lg, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100] },
+    errorText: { fontSize: fontSize.sm, color: colors.red[700], flex: 1 },
+    list: { paddingHorizontal: spacing.lg },
+    templateCard: { marginBottom: spacing.sm },
+    cardRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    iconBg: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+    cardContent: { flex: 1 },
+    cardName: { fontSize: fontSize.sm, fontWeight: "700", color: theme.textPrimary },
+    cardDesc: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: 2 },
+    cardMeta: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs },
+    metaChip: { flexDirection: "row", alignItems: "center", gap: 3 },
+    metaText: { fontSize: 11, color: theme.textMuted },
+    regulation: { fontSize: 10, color: colors.brand[600], fontWeight: "600", marginTop: 3 },
+    empty: { alignItems: "center", paddingTop: spacing["3xl"] },
+    emptyIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: theme.borderLight, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
+    emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: theme.textSecondary },
+    emptySub: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: spacing.xs, textAlign: "center", paddingHorizontal: spacing.xl },
+  });

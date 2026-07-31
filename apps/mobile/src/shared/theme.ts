@@ -78,6 +78,78 @@ export const fontSize = {
   "4xl": 36,
 } as const;
 
+/**
+ * Semantic theme tokens — the same slots in light and dark mode.
+ * Screens/components that need dark-mode support should consume these
+ * through `useAppTheme()` instead of hardcoding `colors.white` / `runway`.
+ */
+export interface ThemeColors {
+  /** Screen background */
+  background: string;
+  /** Card / surface background */
+  surface: string;
+  /** Elevated surface (modals, active controls) */
+  surfaceElevated: string;
+  /** Primary text */
+  textPrimary: string;
+  /** Secondary text */
+  textSecondary: string;
+  /** Muted / placeholder text */
+  textMuted: string;
+  /** Borders */
+  border: string;
+  /** Subtle borders / dividers */
+  borderLight: string;
+}
+
+export const lightTheme: ThemeColors = {
+  background: colors.runway[50],
+  surface: colors.white,
+  surfaceElevated: colors.white,
+  textPrimary: colors.runway[900],
+  textSecondary: colors.runway[700],
+  textMuted: colors.runway[500],
+  border: colors.runway[200],
+  borderLight: colors.runway[100],
+};
+
+export const darkTheme: ThemeColors = {
+  background: "#0f172a",
+  surface: "#1e293b",
+  surfaceElevated: "#334155",
+  textPrimary: "#f8fafc",
+  textSecondary: "#cbd5e1",
+  textMuted: "#94a3b8",
+  border: "#334155",
+  borderLight: "#1e293b",
+};
+
+/** Avatar background palette (data, not theme-dependent). */
+export const avatarPalette = [
+  "#1e3a5f",
+  "#2d5a3f",
+  "#5b2d8e",
+  "#8b4513",
+  "#1a6b5c",
+  "#c4421a",
+  "#4a5568",
+  "#b8860b",
+  "#2c3e50",
+  "#3b82f6",
+  "#0f172a",
+  "#7c3aed",
+] as const;
+
+/** Accent colors for the built-in form template types. */
+export const formTypeColors: Record<string, { color: string; bg: string }> = {
+  "pre-flight": { color: "#1e3a5f", bg: "#e0f2fe" },
+  "post-flight": { color: "#166534", bg: "#dcfce7" },
+  "weight-balance": { color: "#7c3aed", bg: "#f3e8ff" },
+  maintenance: { color: "#b45309", bg: "#fef3c7" },
+  operations: { color: "#0369a1", bg: "#e0f2fe" },
+  planning: { color: "#be185d", bg: "#fce7f3" },
+};
+
 export const shadows: Record<string, ViewStyle> = {
   sm: {
     shadowColor: colors.black,

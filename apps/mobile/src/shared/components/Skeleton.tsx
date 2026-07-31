@@ -8,7 +8,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
-import { colors, borderRadius } from "../theme";
+import { borderRadius, spacing } from "../theme";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 interface SkeletonProps {
   width?: number | string;
@@ -18,6 +19,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ width = "100%", height = 16, borderRadius: br = borderRadius.sm, style }: SkeletonProps) {
+  const { colors: theme } = useAppTheme();
   const opacity = useSharedValue(0.3);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function Skeleton({ width = "100%", height = 16, borderRadius: br = borde
   return (
     <Animated.View
       style={[
-        { width: width as any, height, borderRadius: br, backgroundColor: colors.runway[200] },
+        { width: width as any, height, borderRadius: br, backgroundColor: theme.border },
         animStyle,
         style,
       ]}
@@ -44,8 +46,16 @@ export function Skeleton({ width = "100%", height = 16, borderRadius: br = borde
 }
 
 export function SkeletonCard() {
+  const { colors: theme } = useAppTheme();
   return (
-    <View style={{ padding: 16, backgroundColor: colors.white, borderRadius: borderRadius.lg, gap: 12 }}>
+    <View
+      style={{
+        padding: spacing.md,
+        backgroundColor: theme.surface,
+        borderRadius: borderRadius.lg,
+        gap: spacing.sm,
+      }}
+    >
       <Skeleton width="60%" height={18} />
       <Skeleton width="90%" height={14} />
       <Skeleton width="40%" height={12} />

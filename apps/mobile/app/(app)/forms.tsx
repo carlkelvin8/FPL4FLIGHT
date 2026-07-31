@@ -10,11 +10,12 @@ import * as Haptics from "expo-haptics";
 import { Swipeable } from "react-native-gesture-handler";
 import { useForms } from "@features/forms/hooks/useForms";
 import { useTemplates } from "@features/forms/hooks/useTemplates";
-import { colors, spacing, borderRadius, fontSize, shadows } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize, shadows, type ThemeColors } from "@shared/theme";
 import { Card } from "@shared/components/Card";
 import { PressableScale } from "@shared/components/PressableScale";
 import { SkeletonCard } from "@shared/components/Skeleton";
 import { relativeTime } from "@shared/utils";
+import { useAppTheme } from "@shared/hooks/useAppTheme";
 
 const STATUS_MAP = {
   draft: { label: "Draft", color: colors.amber[600], bg: colors.amber[50], icon: "create-outline" as const },
@@ -27,6 +28,7 @@ type FilterOption = "all" | "draft" | "completed";
 
 export default function FormsScreen() {
   const insets = useSafeAreaInsets();
+  const { colors: theme } = useAppTheme();
   const { forms, isLoading, isRefetching, error, refetch, createForm, deleteForm } = useForms();
   const { templates } = useTemplates();
   const [search, setSearch] = useState("");
@@ -36,6 +38,7 @@ export default function FormsScreen() {
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [filterBy, setFilterBy] = useState<FilterOption>("all");
   const router = useRouter();
+  const styles = createStyles(theme);
 
   // Dashboard stats
   const stats = useMemo(() => {
@@ -136,7 +139,7 @@ export default function FormsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Forms</Text>
         <PressableScale onPress={() => router.push("/(app)/notifications")} haptic>
-          <Ionicons name="notifications-outline" size={22} color={colors.runway[600]} />
+          <Ionicons name="notifications-outline" size={22} color={theme.textSecondary} />
         </PressableScale>
       </View>
 
@@ -158,11 +161,11 @@ export default function FormsScreen() {
 
       {/* Search */}
       <View style={styles.searchRow}>
-        <Ionicons name="search-outline" size={18} color={colors.runway[400]} style={styles.searchIcon} />
+        <Ionicons name="search-outline" size={18} color={theme.textMuted} style={styles.searchIcon} />
         <TextInput
           style={styles.search}
           placeholder="Search forms..."
-          placeholderTextColor={colors.runway[400]}
+          placeholderTextColor={theme.textMuted}
           value={search}
           onChangeText={setSearch}
           autoCapitalize="none"
@@ -195,7 +198,7 @@ export default function FormsScreen() {
           }}
           activeOpacity={0.7}
         >
-          <Ionicons name="swap-vertical" size={14} color={colors.runway[500]} />
+          <Ionicons name="swap-vertical" size={14} color={theme.textMuted} />
           <Text style={styles.sortBtnText}>
             {sortBy === "recent" ? "Newest" : sortBy === "oldest" ? "Oldest" : "Status"}
           </Text>
@@ -254,7 +257,7 @@ export default function FormsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={styles.emptyIconBg}><Ionicons name="document-text-outline" size={40} color={colors.runway[400]} /></View>
+            <View style={styles.emptyIconBg}><Ionicons name="document-text-outline" size={40} color={theme.textMuted} /></View>
             <Text style={styles.emptyTitle}>No forms yet</Text>
             <Text style={styles.emptySub}>{search ? "Try a different search" : "Tap + to start a new form"}</Text>
           </View>
@@ -275,7 +278,7 @@ export default function FormsScreen() {
             <Text style={styles.modalSubtitle}>Select a template to start</Text>
             {templates.length === 0 ? (
               <View style={styles.modalEmpty}>
-                <Ionicons name="layers-outline" size={32} color={colors.runway[400]} />
+                <Ionicons name="layers-outline" size={32} color={theme.textMuted} />
                 <Text style={styles.modalEmptyText}>No templates available</Text>
               </View>
             ) : (
@@ -306,68 +309,69 @@ export default function FormsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
-  title: { fontSize: 28, fontWeight: "700", color: colors.runway[900], letterSpacing: -0.5 },
-  // Dashboard
-  dashRow: { flexDirection: "row", paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.md },
-  dashCard: { flex: 1, borderRadius: borderRadius.md, padding: spacing.sm, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
-  dashCardActive: { borderColor: colors.brand[400] },
-  dashNum: { fontSize: fontSize["2xl"], fontWeight: "700" },
-  dashLabel: { fontSize: 10, fontWeight: "600", color: colors.runway[500], marginTop: 2 },
-  // Search
-  searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
-  searchIcon: { position: "absolute", left: spacing.lg + spacing.sm, zIndex: 1 },
-  search: { flex: 1, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.runway[200], borderRadius: borderRadius.md, paddingHorizontal: spacing.lg + spacing.md, paddingVertical: spacing.sm, fontSize: fontSize.base, color: colors.runway[900] },
-  // Filter & Sort
-  filterRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.md, gap: spacing.xs },
-  filterChip: { paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: borderRadius.full, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.runway[200] },
-  filterChipActive: { backgroundColor: colors.brand[600], borderColor: colors.brand[600] },
-  filterChipText: { fontSize: 11, fontWeight: "600", color: colors.runway[500] },
-  filterChipTextActive: { color: colors.white },
-  sortBtn: { flexDirection: "row", alignItems: "center", gap: 3, marginLeft: "auto", paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: borderRadius.full, backgroundColor: colors.runway[100] },
-  sortBtnText: { fontSize: 11, fontWeight: "600", color: colors.runway[500] },
-  // Error
-  errorBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.red[50], marginHorizontal: spacing.lg, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100] },
-  errorText: { fontSize: fontSize.sm, color: colors.red[700], flex: 1 },
-  // Cards
-  list: { paddingHorizontal: spacing.lg },
-  formCard: { marginBottom: spacing.sm },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
-  statusIconBg: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  cardTitleWrap: { flex: 1 },
-  cardTitle: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[900] },
-  cardSub: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: 1 },
-  statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: borderRadius.sm },
-  statusLabel: { fontSize: fontSize.xs, fontWeight: "600" },
-  // Progress bar
-  progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.xs },
-  progressBar: { flex: 1, height: 4, backgroundColor: colors.runway[200], borderRadius: 2, overflow: "hidden" },
-  progressFill: { height: 4, borderRadius: 2 },
-  progressText: { fontSize: 10, fontWeight: "700", color: colors.runway[500], width: 30, textAlign: "right" },
-  // Swipe delete
-  swipeDelete: { backgroundColor: colors.red[500], justifyContent: "center", alignItems: "center", width: 80, borderRadius: borderRadius.md, marginBottom: spacing.sm, marginLeft: spacing.xs },
-  swipeDeleteText: { color: colors.white, fontSize: 10, fontWeight: "700", marginTop: 2 },
-  // Empty
-  empty: { alignItems: "center", paddingTop: spacing["3xl"] },
-  emptyIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.runway[100], alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
-  emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: colors.runway[700] },
-  emptySub: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.xs, textAlign: "center", paddingHorizontal: spacing.xl },
-  // FAB
-  fab: { position: "absolute", bottom: 90, right: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center", ...shadows.lg },
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, maxHeight: "70%", paddingBottom: 100 },
-  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.runway[300], alignSelf: "center", marginBottom: spacing.md },
-  modalTitle: { fontSize: fontSize.lg, fontWeight: "700", color: colors.runway[900], textAlign: "center" },
-  modalSubtitle: { fontSize: fontSize.sm, color: colors.runway[500], textAlign: "center", marginBottom: spacing.lg },
-  modalEmpty: { alignItems: "center", paddingVertical: spacing.xl },
-  modalEmptyText: { fontSize: fontSize.base, fontWeight: "600", color: colors.runway[600], marginTop: spacing.sm },
-  templateList: { maxHeight: 300 },
-  templateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm + 4, borderBottomWidth: 1, borderBottomColor: colors.runway[100] },
-  templateIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brand[50], alignItems: "center", justifyContent: "center" },
-  templateInfo: { flex: 1 },
-  templateName: { fontSize: fontSize.sm, fontWeight: "600", color: colors.runway[900] },
-  templateMeta: { fontSize: fontSize.xs, color: colors.runway[400], marginTop: 2 },
-});
+const createStyles = (theme: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
+    title: { fontSize: 28, fontWeight: "700", color: theme.textPrimary, letterSpacing: -0.5 },
+    // Dashboard
+    dashRow: { flexDirection: "row", paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.md },
+    dashCard: { flex: 1, borderRadius: borderRadius.md, padding: spacing.sm, alignItems: "center", borderWidth: 2, borderColor: "transparent" },
+    dashCardActive: { borderColor: colors.brand[400] },
+    dashNum: { fontSize: fontSize["2xl"], fontWeight: "700" },
+    dashLabel: { fontSize: 10, fontWeight: "600", color: theme.textMuted, marginTop: 2 },
+    // Search
+    searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
+    searchIcon: { position: "absolute", left: spacing.lg + spacing.sm, zIndex: 1 },
+    search: { flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: borderRadius.md, paddingHorizontal: spacing.lg + spacing.md, paddingVertical: spacing.sm, fontSize: fontSize.base, color: theme.textPrimary },
+    // Filter & Sort
+    filterRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, marginBottom: spacing.md, gap: spacing.xs },
+    filterChip: { paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: borderRadius.full, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border },
+    filterChipActive: { backgroundColor: colors.brand[600], borderColor: colors.brand[600] },
+    filterChipText: { fontSize: 11, fontWeight: "600", color: theme.textMuted },
+    filterChipTextActive: { color: colors.white },
+    sortBtn: { flexDirection: "row", alignItems: "center", gap: 3, marginLeft: "auto", paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: borderRadius.full, backgroundColor: theme.borderLight },
+    sortBtnText: { fontSize: 11, fontWeight: "600", color: theme.textMuted },
+    // Error
+    errorBanner: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.red[50], marginHorizontal: spacing.lg, marginBottom: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.red[100] },
+    errorText: { fontSize: fontSize.sm, color: colors.red[700], flex: 1 },
+    // Cards
+    list: { paddingHorizontal: spacing.lg },
+    formCard: { marginBottom: spacing.sm },
+    cardTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
+    statusIconBg: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+    cardTitleWrap: { flex: 1 },
+    cardTitle: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textPrimary },
+    cardSub: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: 1 },
+    statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: borderRadius.sm },
+    statusLabel: { fontSize: fontSize.xs, fontWeight: "600" },
+    // Progress bar
+    progressRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.xs },
+    progressBar: { flex: 1, height: 4, backgroundColor: theme.border, borderRadius: 2, overflow: "hidden" },
+    progressFill: { height: 4, borderRadius: 2 },
+    progressText: { fontSize: 10, fontWeight: "700", color: theme.textMuted, width: 30, textAlign: "right" },
+    // Swipe delete
+    swipeDelete: { backgroundColor: colors.red[500], justifyContent: "center", alignItems: "center", width: 80, borderRadius: borderRadius.md, marginBottom: spacing.sm, marginLeft: spacing.xs },
+    swipeDeleteText: { color: colors.white, fontSize: 10, fontWeight: "700", marginTop: 2 },
+    // Empty
+    empty: { alignItems: "center", paddingTop: spacing["3xl"] },
+    emptyIconBg: { width: 72, height: 72, borderRadius: 36, backgroundColor: theme.borderLight, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
+    emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: theme.textSecondary },
+    emptySub: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: spacing.xs, textAlign: "center", paddingHorizontal: spacing.xl },
+    // FAB
+    fab: { position: "absolute", bottom: 90, right: spacing.lg, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center", ...shadows.lg },
+    // Modal
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+    modalContent: { backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, maxHeight: "70%", paddingBottom: 100 },
+    modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.runway[300], alignSelf: "center", marginBottom: spacing.md },
+    modalTitle: { fontSize: fontSize.lg, fontWeight: "700", color: theme.textPrimary, textAlign: "center" },
+    modalSubtitle: { fontSize: fontSize.sm, color: theme.textMuted, textAlign: "center", marginBottom: spacing.lg },
+    modalEmpty: { alignItems: "center", paddingVertical: spacing.xl },
+    modalEmptyText: { fontSize: fontSize.base, fontWeight: "600", color: theme.textSecondary, marginTop: spacing.sm },
+    templateList: { maxHeight: 300 },
+    templateRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm + 4, borderBottomWidth: 1, borderBottomColor: theme.borderLight },
+    templateIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brand[50], alignItems: "center", justifyContent: "center" },
+    templateInfo: { flex: 1 },
+    templateName: { fontSize: fontSize.sm, fontWeight: "600", color: theme.textPrimary },
+    templateMeta: { fontSize: fontSize.xs, color: theme.textMuted, marginTop: 2 },
+  });
