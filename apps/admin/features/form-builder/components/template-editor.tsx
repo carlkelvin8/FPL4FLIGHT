@@ -31,10 +31,10 @@ export function TemplateEditor({ template }: Props) {
     try {
       const parsed = JSON.parse(value);
       const result = parseSchema(parsed);
-      if ("code" in result) {
-        setError(result.message);
+      if (!result.success) {
+        setError(result.error.message);
       } else {
-        setSchema(result);
+        setSchema(result.data);
       }
     } catch {
       setError("Invalid JSON");
@@ -47,8 +47,8 @@ export function TemplateEditor({ template }: Props) {
     try {
       const parsed = JSON.parse(schemaJson);
       const result = parseSchema(parsed);
-      if ("code" in result) {
-        setError(result.message);
+      if (!result.success) {
+        setError(result.error.message);
         setSaving(false);
         return;
       }
