@@ -1,9 +1,7 @@
 "use server";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { z } from "zod";
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 const SignInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -29,6 +27,7 @@ export async function signIn(
     return { error: first?.message ?? "Invalid input", success: false };
   }
 
+  const { createSupabaseServerClient } = await import("@/lib/supabase/server");
   const supabase = createSupabaseServerClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -57,11 +56,12 @@ export async function signIn(
     return { error: "Access denied. Admin privileges required.", success: false };
   }
 
-    revalidatePath("/", "layout");
+  revalidatePath("/", "layout");
   return { error: null, success: true };
 }
 
 export async function signOut(): Promise<void> {
+  const { createSupabaseServerClient } = await import("@/lib/supabase/server");
   const supabase = createSupabaseServerClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");

@@ -1,7 +1,6 @@
-/**
- * Subscriptions feature module barrel.
- * Subscription overrides and payment history are implemented in Task 21.
- */
-
-export { SubscriptionsRepository } from "./repository";
-export type { SubscriptionRow, SubscriptionSummary } from "./repository";
+export { SubscriptionRepository } from "./repository";
+export type { SubscriptionRow, UpdateSubscriptionInput } from "./repository";
+export { updateSubscription, deleteSubscription } from "./actions";
+export type { ActionState } from "./actions";
+export { SubscriptionList } from "./components/subscription-list";
+export { EditSubscriptionDialog } from "./components/edit-subscription-dialog";

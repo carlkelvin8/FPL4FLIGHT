@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import logoImage from "@/public/logo.png";
 
 import { LoginForm } from "./LoginForm";
 
@@ -7,12 +9,7 @@ export const metadata: Metadata = {
 };
 
 function BrandLogo() {
-  return (
-    <svg className="h-8 w-8" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <rect width="40" height="40" rx="10" className="fill-brand-600" />
-      <path d="M12 28V12l16 8-16 8z" className="fill-white" />
-    </svg>
-  );
+  return <Image src={logoImage} alt="FPL4FLIGHT" width={80} height={80} className="h-20 w-20" />;
 }
 
 function DotPattern() {

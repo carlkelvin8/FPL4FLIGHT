@@ -1,7 +1,7 @@
-/**
- * Users feature module barrel.
- * User search and role management are implemented in Task 27.
- */
-
-export { UsersRepository } from "./repository";
-export type { ProfileRow } from "./repository";
+export { UserRepository } from "./repository";
+export type { ProfileRow, CreateUserInput, UpdateUserInput } from "./repository";
+export { createUser, updateUser, deleteUser } from "./actions";
+export type { ActionState } from "./actions";
+export { UserList } from "./components/user-list";
+export { CreateUserDialog } from "./components/create-user-dialog";
+export { EditUserDialog } from "./components/edit-user-dialog";

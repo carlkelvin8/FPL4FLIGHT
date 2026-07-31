@@ -1,57 +1,52 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient, supabaseConfigured } from "@/lib/supabase/server";
-
+import { cookies } from "next/headers";
+import { Sidebar } from "./sidebar";
 import { SignOutButton } from "./SignOutButton";
-const navItems = [
-  { href: "/", label: "Overview" },
-  { href: "/forms", label: "Forms" },
-  { href: "/users", label: "Users" },
-  { href: "/subscriptions", label: "Subscriptions" },
-  { href: "/audit", label: "Audit Log" },
-  { href: "/aip", label: "AIP Documents" },
-] as const;
 
-type SessionUser = { email: string; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> };
-type SessionProfile = { role: string; full_name: string | null };
+interface AdminSession {
+  email: string;
+  full_name: string;
+  avatar_url: string | null;
+  role: string;
+}
 
-async function getSession(): Promise<{ user: SessionUser | null; profile: SessionProfile | null } | null> {
-  if (!supabaseConfigured()) return null;
-
+async function getSupabaseSession(): Promise<AdminSession | null> {
   try {
+    const { createSupabaseServerClient } = await import("@/lib/supabase/server");
     const supabase = createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { user: null, profile: null };
+    if (!user) return null;
 
     const metadataRole = user.app_metadata?.role as string | undefined;
     if (metadataRole === "admin") {
       return {
-        user: { email: user.email ?? "", app_metadata: user.app_metadata, user_metadata: user.user_metadata },
-        profile: { role: "admin", full_name: (user.user_metadata?.full_name as string) ?? null },
+        email: user.email ?? "",
+        full_name: (user.user_metadata?.full_name as string) ?? user.email ?? "",
+        avatar_url: null,
+        role: "admin",
       };
     }
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, full_name")
+      .select("role, full_name, avatar_url")
       .eq("id", user.id)
       .maybeSingle();
 
+    if (profile?.role !== "admin") return null;
+
     return {
-      user: { email: user.email ?? "", app_metadata: user.app_metadata, user_metadata: user.user_metadata },
-      profile,
+      email: user.email ?? "",
+      full_name: profile?.full_name ?? user.email ?? "",
+      avatar_url: profile?.avatar_url ?? null,
+      role: "admin",
     };
   } catch {
-    return { user: null, profile: null };
+    return null;
   }
 }
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await getSession();
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSupabaseSession();
 
   if (!session) {
     return (
@@ -64,52 +59,31 @@ export default async function DashboardLayout({
     );
   }
 
-  if (!session.user) {
-    redirect("/login");
-  }
-
-  const isAdmin = session.profile?.role === "admin";
-  if (!isAdmin) {
-    redirect("/login");
-  }
-
   return (
-    <div className="flex min-h-screen">
-      <aside
-        className="flex w-64 shrink-0 flex-col bg-runway-800"
-        aria-label="Sidebar navigation"
-      >
-        <div className="flex h-16 items-center border-b border-runway-700 px-6">
-          <span className="text-lg font-semibold tracking-tight text-white">
-            FPL4FLIGHT
-          </span>
-        </div>
+    <div className="flex min-h-screen bg-runway-50">
+      <Sidebar userName={session.full_name} userEmail={session.email} avatarUrl={session.avatar_url} />
 
-        <nav className="flex-1 px-4 py-6">
-          <ul className="space-y-1" role="list">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="flex items-center rounded-lg px-3 py-2 text-sm font-medium text-runway-200 transition-colors hover:bg-runway-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
-
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-runway-200 bg-white px-6">
-          <span className="text-sm text-runway-700">
-            {session.profile?.full_name ?? session.user.email}
-          </span>
+          <div className="flex items-center gap-4">
+            <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-runway-200">
+              {session.avatar_url ? (
+                <img src={session.avatar_url} alt={session.full_name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-400 to-brand-600 text-xs font-bold text-white shadow-sm">
+                  {(session.full_name ?? session.email).charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-runway-900">{session.full_name}</p>
+              <p className="text-xs text-runway-400">{session.email}</p>
+            </div>
+          </div>
           <SignOutButton />
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
