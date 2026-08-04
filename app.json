@@ -1,12 +1,65 @@
 {
   "expo": {
+    "name": "FPL4FLIGHT",
+    "slug": "fpl4flight",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./apps/mobile/assets/icon.png",
+    "scheme": "fpl4flight",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#f8fafc",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "bundleIdentifier": "io.pilotforms.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "FPL4FLIGHT needs your location for live flight tracking and sharing your position with other pilots.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "FPL4FLIGHT needs background location access to track your flight even when the app is in the background.",
+        "NSCameraUsageDescription": "FPL4FLIGHT uses the camera to scan QR codes and take photos for chat.",
+        "NSMicrophoneUsageDescription": "FPL4FLIGHT uses the microphone to record voice messages in chat.",
+        "NSFaceIDUsageDescription": "FPL4FLIGHT uses Face ID to secure app access."
+      }
+    },
+    "android": {
+      "package": "io.pilotforms.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#1e3a5f"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-local-authentication",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "FPL4FLIGHT needs background location to track your flight."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FPL4FLIGHT needs photo access to share images in chat."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "f22e6c2e-fe6e-4b23-af2e-0b8768dda46d"
       }
-    },
-    "android": {
-      "package": "com.carllll.pilotforms"
     }
   }
 }

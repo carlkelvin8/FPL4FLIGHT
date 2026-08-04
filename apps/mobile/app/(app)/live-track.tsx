@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -27,6 +28,7 @@ export default function LiveTrackScreen() {
 
 function LiveTrackContent() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const mapRef = useRef<MapView>(null);
   const [tracking, setTracking] = useState(false);
   const [currentPos, setCurrentPos] = useState<TrackPoint | null>(null);
@@ -43,10 +45,20 @@ function LiveTrackContent() {
   }, []);
 
   const startTracking = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
+    // Request foreground first, then background for in-flight tracking
+    const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+    if (fgStatus !== "granted") {
       Alert.alert("Permission Denied", "Location access is required for live tracking.");
       return;
+    }
+
+    const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+    if (bgStatus !== "granted") {
+      Alert.alert(
+        "Background Location",
+        "Background location was not granted. Tracking will pause when the app is in the background.",
+        [{ text: "Continue Anyway" }]
+      );
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -68,7 +80,10 @@ function LiveTrackContent() {
           timestamp: loc.timestamp,
         };
         setCurrentPos(point);
-        setTrackHistory((prev) => [...prev, point]);
+        setTrackHistory((prev) => {
+          const updated = [...prev, point];
+          return updated.length > 3600 ? updated.slice(-3600) : updated;
+        });
 
         mapRef.current?.animateToRegion({
           latitude: loc.coords.latitude,
@@ -119,6 +134,12 @@ function LiveTrackContent() {
 
       {/* Overlay: Flight Data */}
       <View style={[styles.dataPanel, { top: insets.top + spacing.md }]}>
+        <View style={styles.backRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color={colors.brand[600]} />
+          </TouchableOpacity>
+          <Text style={styles.panelTitle}>Live Track</Text>
+        </View>
         <View style={styles.dataRow}>
           <DataItem label="SPD" value={`${speedKts} kt`} />
           <DataItem label="ALT" value={`${altFt} ft`} />
@@ -176,6 +197,9 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   aircraftMarker: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
   dataPanel: { position: "absolute", left: spacing.md, right: spacing.md, backgroundColor: "rgba(255,255,255,0.95)", borderRadius: borderRadius.lg, padding: spacing.sm, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  backRow: { flexDirection: "row", alignItems: "center", marginBottom: spacing.xs },
+  backBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  panelTitle: { fontSize: fontSize.sm, fontWeight: "700", color: colors.runway[900] },
   dataRow: { flexDirection: "row", justifyContent: "space-around" },
   dataItem: { alignItems: "center" },
   dataLabel: { fontSize: 9, fontWeight: "700", color: colors.runway[400], letterSpacing: 0.5 },

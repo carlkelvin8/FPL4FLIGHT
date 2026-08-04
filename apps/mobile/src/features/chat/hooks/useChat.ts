@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, FlatList, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -16,8 +16,9 @@ export function useChat(channelId: string) {
   const queryClient = useQueryClient();
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const flatListRef = useRef<any>(null);
+  const flatListRef = useRef<FlatList>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const isAtBottomRef = useRef(true);
   const [newMessageCount, setNewMessageCount] = useState(0);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [onlineMembers, setOnlineMembers] = useState<OnlineMember[]>([]);
@@ -38,10 +39,10 @@ export function useChat(channelId: string) {
         if (lastPage.some((m) => m.id === message.id)) return old;
         return { ...old, pages: [...old.pages.slice(0, -1), [...lastPage, message]] };
       });
-      if (!isAtBottom && message.userId !== user?.id) setNewMessageCount((c) => c + 1);
+      if (!isAtBottomRef.current && message.userId !== user?.id) setNewMessageCount((c) => c + 1);
     });
     return unsub;
-  }, [queryClient, queryKey, channelId, isAtBottom, user?.id]);
+  }, [queryClient, queryKey, channelId, user?.id]);
 
   // Typing presence
   useEffect(() => {
@@ -94,7 +95,7 @@ export function useChat(channelId: string) {
 
   const sendImage = useCallback(async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7 });
       if (result.canceled || !result.assets[0]) return;
       setSending(true);
       const asset = result.assets[0];
@@ -178,10 +179,11 @@ export function useChat(channelId: string) {
   }, [editingMessage, queryClient, queryKey]);
 
   const scrollToBottom = useCallback(() => { flatListRef.current?.scrollToEnd({ animated: true }); setIsAtBottom(true); setNewMessageCount(0); }, []);
-  const handleScroll = useCallback((event: any) => {
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const atBottom = contentSize.height - layoutMeasurement.height - contentOffset.y < 50;
     setIsAtBottom(atBottom);
+    isAtBottomRef.current = atBottom;
     if (atBottom) setNewMessageCount(0);
   }, []);
 

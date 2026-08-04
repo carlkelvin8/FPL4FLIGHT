@@ -96,7 +96,7 @@ export default function OnboardingScreen() {
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Skip button */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleSkip} activeOpacity={0.7}>
+        <TouchableOpacity onPress={handleSkip} activeOpacity={0.7} accessibilityLabel="Skip onboarding">
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -111,6 +111,8 @@ export default function OnboardingScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
+        decelerationRate="fast"
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         onMomentumScrollEnd={(e) => {
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setCurrentIndex(index);

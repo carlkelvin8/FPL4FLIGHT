@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
@@ -62,6 +62,7 @@ export function ChannelList({
                 style={[styles.channelItem, isActive && styles.channelItemActive]}
                 onPress={() => onSelectChannel(channel)}
                 activeOpacity={0.7}
+                accessibilityLabel={`Select channel ${channel.name}`}
               >
                 <Ionicons
                   name={channel.icon as any}

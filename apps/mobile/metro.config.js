@@ -26,4 +26,7 @@ config.resolver.extraNodeModules = {
   "@pilotforms/shared": path.resolve(projectRoot, "src/shared-pkg"),
 };
 
+// 5. Add PDF to asset extensions so bundled PDFs are included in the build
+config.resolver.assetExts = [...(config.resolver.assetExts || []), "pdf"];
+
 module.exports = config;

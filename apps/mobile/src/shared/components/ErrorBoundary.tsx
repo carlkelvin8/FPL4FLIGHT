@@ -1,8 +1,6 @@
 import React, { Component } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-
-import { colors, spacing, borderRadius } from "../theme";
-import { useAppTheme } from "../hooks/useAppTheme";
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 
 interface Props {
   children: React.ReactNode;
@@ -17,6 +15,11 @@ interface State {
 /**
  * ErrorBoundary — catches unhandled render errors in any child subtree
  * and displays a recoverable fallback UI instead of crashing the app.
+ *
+ * Usage:
+ *   <ErrorBoundary>
+ *     <SomeScreen />
+ *   </ErrorBoundary>
  */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -29,7 +32,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, info: React.ErrorInfo): void {
-    console.error("[ErrorBoundary] Caught error:", error, info.componentStack);
+    // Error reporting (e.g. Sentry) will be wired in Task 28.
+    if (__DEV__) console.error("[ErrorBoundary] Caught error:", error, info.componentStack);
   }
 
   private resetError = (): void => {
@@ -48,27 +52,16 @@ export class ErrorBoundary extends Component<Props, State> {
       return fallback(error, this.resetError);
     }
 
-    return <ThemedErrorFallback message={error.message} onRetry={this.resetError} />;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Something went wrong</Text>
+        <Text style={styles.message}>{error.message}</Text>
+        <TouchableOpacity style={styles.button} onPress={this.resetError}>
+          <Text style={styles.buttonText}>Try again</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
-}
-
-function ThemedErrorFallback({ message, onRetry }: { message: string; onRetry: () => void }) {
-  const { colors: theme } = useAppTheme();
-
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.title, { color: theme.textPrimary }]}>Something went wrong</Text>
-      <Text style={[styles.message, { color: theme.textMuted }]}>{message}</Text>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={onRetry}
-        accessibilityRole="button"
-        accessibilityLabel="Try again"
-      >
-        <Text style={styles.buttonText}>Try again</Text>
-      </TouchableOpacity>
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -77,27 +70,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: spacing.xl,
+    backgroundColor: colors.white,
   },
   title: {
-    fontSize: 20,
+    fontSize: fontSize.xl,
     fontWeight: "600",
-    marginBottom: spacing.sm,
+    color: colors.runway[900],
+    marginBottom: spacing.xs,
   },
   message: {
-    fontSize: 14,
+    fontSize: fontSize.sm,
+    color: colors.runway[500],
     textAlign: "center",
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   button: {
     backgroundColor: colors.brand[600],
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.md,
   },
   buttonText: {
     color: colors.white,
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: fontSize.base,
   },
 });
 

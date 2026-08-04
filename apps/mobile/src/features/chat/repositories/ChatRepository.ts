@@ -235,7 +235,9 @@ export class ChatRepository {
 
   async searchMessages(channelId: string, query: string): Promise<Result<ChatMessage[]>> {
     try {
-      const searchTerm = query.trim().toLowerCase();
+      // Escape SQL LIKE wildcards to prevent pattern injection
+      const searchTerm = query.trim().toLowerCase().replace(/%/g, "\\%").replace(/_/g, "\\_");
+      if (!searchTerm) return ok([]);
       const { data, error } = await supabase.from("community_messages").select("*").or(`channel_id.eq.${channelId},channel_id.is.null`).ilike("content", `%${searchTerm}%`).order("created_at", { ascending: false }).limit(30);
       if (error) return err("DB_ERROR", error.message, error);
       const rows = (data ?? []) as ChatMessageRow[];
@@ -269,10 +271,25 @@ export class ChatRepository {
     try {
       const response = await fetch(uri);
       const blob = await response.blob();
+
+      // File size validation (10MB max for images, 25MB for audio)
+      const maxSize = fileName.endsWith(".m4a") || fileName.endsWith(".mp3") ? 25 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (blob.size > maxSize) {
+        const maxMB = maxSize / (1024 * 1024);
+        return err("VALIDATION", `File too large. Maximum size is ${maxMB}MB.`);
+      }
+
+      // Content-type validation
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "audio/mp4", "audio/mpeg", "audio/m4a", "audio/aac"];
+      const contentType = blob.type || "application/octet-stream";
+      if (contentType !== "application/octet-stream" && !allowedTypes.includes(contentType)) {
+        return err("VALIDATION", "Unsupported file type. Only images and audio are allowed.");
+      }
+
       const arrayBuffer = await blob.arrayBuffer();
 
       const { data, error } = await supabase.storage.from(bucket).upload(fileName, arrayBuffer, {
-        contentType: blob.type || "application/octet-stream",
+        contentType,
         upsert: false,
       });
 

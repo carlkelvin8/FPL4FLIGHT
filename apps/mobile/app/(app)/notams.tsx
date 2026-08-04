@@ -1,26 +1,94 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, Modal, ScrollView } from "react-native";
+import { useState, useCallback } from "react";
+import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator, Modal, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useNotams, type Notam } from "@features/notams";
-import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
-import { LoadingState, ErrorState, EmptyState } from "@shared/components/ScreenState";
-import { useAppTheme } from "@shared/hooks/useAppTheme";
+
+interface Notam {
+  id: string;
+  number: string;
+  text: string;
+  type: string;
+  effectiveStart: string;
+  effectiveEnd: string;
+  location: string;
+}
 
 export default function NotamScreen() {
   const insets = useSafeAreaInsets();
-  const { colors: theme } = useAppTheme();
-  const { icao, setIcao, activeAirport, notams, isLoading, error, recentSearches, search, refresh } = useNotams();
+  const router = useRouter();
+  const [icao, setIcao] = useState("");
+  const [notams, setNotams] = useState<Notam[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [recentSearches, setRecentSearches] = useState(["RPLL", "RPVM", "RPUB", "RPLC", "RPVP"]);
   const [selectedNotam, setSelectedNotam] = useState<Notam | null>(null);
-  const styles = createStyles(theme);
+  const [searchedAirport, setSearchedAirport] = useState("");
 
-  const handleSearch = (code: string) => {
-    if (code.trim().length !== 4) return;
+  /** Parse NOTAM data from various API response formats */
+  function processNotamData(items: unknown[], airport: string) {
+    const parsed: Notam[] = [];
+    for (let i = 0; i < Math.min(items.length, 50); i++) {
+      const n = items[i] as Record<string, unknown> | null;
+      if (!n || typeof n !== "object") continue;
+      // Handle multiple API response shapes
+      const props = (n.properties ?? n) as Record<string, unknown>;
+      parsed.push({
+        id: String(props.coreNOTAMData?.notam?.id ?? props.notamId ?? props.id ?? i),
+        number: String(props.coreNOTAMData?.notam?.number ?? props.notamNumber ?? props.notamId ?? `${airport}/${i + 1}`),
+        text: String(props.coreNOTAMData?.notam?.text ?? props.traditionalMessage ?? props.text ?? props.raw ?? props.message ?? "No details"),
+        type: String(props.coreNOTAMData?.notam?.classification ?? props.classification ?? props.type ?? "NOTAM"),
+        effectiveStart: String(props.coreNOTAMData?.notam?.effectiveStart ?? props.effectiveStart ?? props.startDate ?? ""),
+        effectiveEnd: String(props.coreNOTAMData?.notam?.effectiveEnd ?? props.effectiveEnd ?? props.endDate ?? "PERM"),
+        location: String(props.coreNOTAMData?.notam?.location ?? props.icaoLocation ?? props.location ?? airport),
+      });
+    }
+    if (parsed.length > 0) { setNotams(parsed); }
+    else { setNotams([]); setError(`No active NOTAMs for ${airport}`); }
+  }
+
+  const fetchNotams = useCallback(async (code: string) => {
+    const airport = code.trim().toUpperCase();
+    if (airport.length !== 4) return;
+    setLoading(true); setError(null); setSearchedAirport(airport);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    search(code);
-  };
+    try {
+      // Primary: FAA NOTAM API (V2)
+      const res = await fetch(`https://external-api.faa.gov/notamapi/v1/notams?icaoLocation=${airport}&pageSize=50`, {
+        headers: { "Accept": "application/json" },
+      });
+
+      if (!res.ok) {
+        // Fallback: try the legacy aviationweather endpoint
+        const fallbackRes = await fetch(`https://aviationweather.gov/api/data/notam?icao=${airport}&format=json`);
+        if (!fallbackRes.ok) throw new Error(`NOTAMs unavailable (HTTP ${res.status}). The FAA API may be temporarily down.`);
+        const fallbackData = await fallbackRes.json();
+        if (Array.isArray(fallbackData) && fallbackData.length > 0) {
+          processNotamData(fallbackData, airport);
+        } else {
+          setNotams([]); setError(`No active NOTAMs for ${airport}`);
+        }
+        setRecentSearches((prev) => [airport, ...prev.filter((s) => s !== airport)].slice(0, 6));
+        setLoading(false);
+        return;
+      }
+
+      const json = await res.json();
+      // FAA V1 response: { items: [...] } or direct array
+      const items = Array.isArray(json) ? json : (json.items ?? json.notams ?? json.data ?? []);
+
+      if (Array.isArray(items) && items.length > 0) {
+        processNotamData(items, airport);
+      } else {
+        setNotams([]); setError(`No active NOTAMs for ${airport}`);
+      }
+      setRecentSearches((prev) => [airport, ...prev.filter((s) => s !== airport)].slice(0, 6));
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to fetch NOTAMs. Check your connection."); setNotams([]); }
+    setLoading(false);
+  }, []);
 
   const formatDate = (d: string) => {
     if (!d) return "—";
@@ -31,7 +99,10 @@ export default function NotamScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: spacing.sm }}>
+          <Ionicons name="chevron-back" size={22} color={colors.brand[600]} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
           <Text style={styles.title}>NOTAM Viewer</Text>
           <Text style={styles.subtitle}>Notices to Airmen</Text>
         </View>
@@ -47,61 +118,52 @@ export default function NotamScreen() {
       <View style={styles.searchSection}>
         <View style={styles.searchRow}>
           <View style={styles.searchInput}>
-            <Ionicons name="search" size={16} color={theme.textMuted} />
-            <TextInput style={styles.input} placeholder="Enter ICAO code (e.g. RPLL)" placeholderTextColor={theme.textMuted} value={icao} onChangeText={setIcao} autoCapitalize="characters" maxLength={4} returnKeyType="search" onSubmitEditing={() => handleSearch(icao)} />
+            <Ionicons name="search" size={16} color={colors.runway[400]} />
+            <TextInput style={styles.input} placeholder="Enter ICAO code (e.g. RPLL)" placeholderTextColor={colors.runway[400]} value={icao} onChangeText={setIcao} autoCapitalize="characters" maxLength={4} returnKeyType="search" onSubmitEditing={() => fetchNotams(icao)} />
           </View>
-          <PressableScale style={styles.searchBtn} onPress={() => handleSearch(icao)} haptic disabled={icao.trim().length !== 4}>
+          <PressableScale style={styles.searchBtn} onPress={() => fetchNotams(icao)} haptic disabled={icao.trim().length !== 4}>
             <Ionicons name="arrow-forward" size={18} color={colors.white} />
           </PressableScale>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {recentSearches.map((code) => (
-            <TouchableOpacity key={code} style={[styles.chip, activeAirport === code && styles.chipActive]} onPress={() => { setIcao(code); handleSearch(code); }} activeOpacity={0.7}>
-              <Text style={[styles.chipText, activeAirport === code && styles.chipTextActive]}>{code}</Text>
+            <TouchableOpacity key={code} style={[styles.chip, searchedAirport === code && styles.chipActive]} onPress={() => { setIcao(code); fetchNotams(code); }} activeOpacity={0.7}>
+              <Text style={[styles.chipText, searchedAirport === code && styles.chipTextActive]}>{code}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* Content states */}
-      {isLoading ? (
-        <LoadingState message={`Fetching NOTAMs for ${activeAirport ?? "..."}`} />
-      ) : error ? (
-        <ErrorState title="Could not load NOTAMs" message={error} onRetry={refresh} />
-      ) : (
-        <FlatList
-          data={notams}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 20 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.card} onPress={() => setSelectedNotam(item)} activeOpacity={0.7}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardBadge}><Text style={styles.cardBadgeText}>{item.type}</Text></View>
-                <Text style={styles.cardNumber}>{item.number}</Text>
-                <Text style={styles.cardLocation}>{item.location}</Text>
+      {loading && <ActivityIndicator style={{ marginTop: 40 }} color={colors.brand[500]} size="large" />}
+      {error && <View style={styles.errorBox}><Ionicons name="alert-circle" size={16} color={colors.amber[600]} /><Text style={styles.errorText}>{error}</Text></View>}
+
+      {/* NOTAM Cards */}
+      <FlatList data={notams} keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 20 }}
+        renderItem={({ item, index }) => (
+          <TouchableOpacity style={styles.card} onPress={() => setSelectedNotam(item)} activeOpacity={0.7}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardBadge}><Text style={styles.cardBadgeText}>{item.type}</Text></View>
+              <Text style={styles.cardNumber}>{item.number}</Text>
+              <Text style={styles.cardLocation}>{item.location}</Text>
+            </View>
+            <Text style={styles.cardText} numberOfLines={3}>{item.text}</Text>
+            <View style={styles.cardFooter}>
+              <View style={styles.cardDateItem}>
+                <Ionicons name="time-outline" size={12} color={colors.runway[400]} />
+                <Text style={styles.cardDateText}>Begin: {formatDate(item.effectiveStart)}</Text>
               </View>
-              <Text style={styles.cardText} numberOfLines={3}>{item.text}</Text>
-              <View style={styles.cardFooter}>
-                <View style={styles.cardDateItem}>
-                  <Ionicons name="time-outline" size={12} color={theme.textMuted} />
-                  <Text style={styles.cardDateText}>Begin: {formatDate(item.effectiveStart)}</Text>
-                </View>
-                <View style={styles.cardDateItem}>
-                  <Ionicons name="flag-outline" size={12} color={theme.textMuted} />
-                  <Text style={styles.cardDateText}>End: {formatDate(item.effectiveEnd)}</Text>
-                </View>
+              <View style={styles.cardDateItem}>
+                <Ionicons name="flag-outline" size={12} color={colors.runway[400]} />
+                <Text style={styles.cardDateText}>End: {formatDate(item.effectiveEnd)}</Text>
               </View>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            <EmptyState
-              icon="warning-outline"
-              title="Search for NOTAMs"
-              subtitle="Enter an ICAO code to fetch active notices"
-            />
-          }
-        />
-      )}
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={!loading && !error ? (
+          <View style={styles.empty}><Ionicons name="warning-outline" size={48} color={colors.runway[300]} /><Text style={styles.emptyTitle}>Search for NOTAMs</Text><Text style={styles.emptyText}>Enter an ICAO code to fetch active notices</Text></View>
+        ) : null}
+      />
 
       {/* Detail Modal */}
       <Modal visible={!!selectedNotam} transparent animationType="slide">
@@ -127,50 +189,56 @@ export default function NotamScreen() {
   );
 }
 
-const createStyles = (theme: ThemeColors) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.background },
-    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
-    title: { fontSize: 24, fontWeight: "700", color: theme.textPrimary },
-    subtitle: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: 2 },
-    countBadge: { alignItems: "center", backgroundColor: colors.brand[50], paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.md },
-    countNum: { fontSize: fontSize.xl, fontWeight: "700", color: colors.brand[600] },
-    countLabel: { fontSize: 9, fontWeight: "600", color: colors.brand[500] },
-    // Search
-    searchSection: { padding: spacing.md, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.borderLight },
-    searchRow: { flexDirection: "row", gap: spacing.sm },
-    searchInput: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: theme.background, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border, paddingHorizontal: spacing.md, height: 44 },
-    input: { flex: 1, fontSize: fontSize.base, color: theme.textPrimary, fontWeight: "600", letterSpacing: 1 },
-    searchBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center" },
-    chipsRow: { gap: spacing.xs, marginTop: spacing.sm },
-    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.full, backgroundColor: theme.borderLight },
-    chipActive: { backgroundColor: colors.brand[600] },
-    chipText: { fontSize: 11, fontWeight: "600", color: theme.textSecondary },
-    chipTextActive: { color: colors.white },
-    // Cards
-    card: { backgroundColor: theme.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderLeftWidth: 4, borderLeftColor: colors.amber[500], borderWidth: 1, borderColor: theme.borderLight },
-    cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
-    cardBadge: { backgroundColor: colors.amber[50], paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
-    cardBadgeText: { fontSize: 9, fontWeight: "700", color: colors.amber[600] },
-    cardNumber: { fontSize: fontSize.sm, fontWeight: "700", color: colors.brand[600], flex: 1 },
-    cardLocation: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textSecondary, backgroundColor: theme.borderLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    cardText: { fontSize: fontSize.sm, color: theme.textSecondary, lineHeight: 18, marginBottom: spacing.sm },
-    cardFooter: { flexDirection: "row", justifyContent: "space-between", paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: theme.borderLight },
-    cardDateItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-    cardDateText: { fontSize: 10, color: theme.textMuted },
-    // Modal
-    overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-    modal: { backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, maxHeight: "85%", paddingBottom: 40 },
-    modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: theme.border, alignSelf: "center", marginBottom: spacing.md },
-    modalHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
-    modalNumber: { fontSize: fontSize.lg, fontWeight: "700", color: colors.brand[600] },
-    modalMeta: { backgroundColor: theme.background, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md, gap: spacing.sm },
-    metaRow: { flexDirection: "row", justifyContent: "space-between" },
-    metaLabel: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textMuted },
-    metaValue: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textPrimary },
-    modalSectionLabel: { fontSize: 10, fontWeight: "700", color: colors.brand[600], letterSpacing: 1, marginBottom: spacing.sm },
-    modalTextScroll: { maxHeight: 250, marginBottom: spacing.md },
-    modalText: { fontSize: fontSize.sm, color: theme.textPrimary, lineHeight: 20, fontFamily: "monospace" },
-    modalCloseBtn: { backgroundColor: colors.brand[600], paddingVertical: 14, borderRadius: borderRadius.md, alignItems: "center" },
-    modalCloseBtnText: { fontSize: fontSize.base, fontWeight: "700", color: colors.white },
-  });
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.runway[50] },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  title: { fontSize: 24, fontWeight: "700", color: colors.runway[900] },
+  subtitle: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
+  countBadge: { alignItems: "center", backgroundColor: colors.brand[50], paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.md },
+  countNum: { fontSize: fontSize.xl, fontWeight: "700", color: colors.brand[600] },
+  countLabel: { fontSize: 9, fontWeight: "600", color: colors.brand[500] },
+  // Search
+  searchSection: { padding: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[100] },
+  searchRow: { flexDirection: "row", gap: spacing.sm },
+  searchInput: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.runway[50], borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.runway[200], paddingHorizontal: spacing.md, height: 44 },
+  input: { flex: 1, fontSize: fontSize.base, color: colors.runway[900], fontWeight: "600", letterSpacing: 1 },
+  searchBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand[600], alignItems: "center", justifyContent: "center" },
+  chipsRow: { gap: spacing.xs, marginTop: spacing.sm },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.full, backgroundColor: colors.runway[100] },
+  chipActive: { backgroundColor: colors.brand[600] },
+  chipText: { fontSize: 11, fontWeight: "600", color: colors.runway[600] },
+  chipTextActive: { color: colors.white },
+  // Error
+  errorBox: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginHorizontal: spacing.md, marginTop: spacing.md, padding: spacing.md, backgroundColor: colors.amber[50], borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.amber[100] },
+  errorText: { fontSize: fontSize.sm, color: colors.amber[600], flex: 1 },
+  // Cards
+  card: { backgroundColor: colors.white, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderLeftWidth: 4, borderLeftColor: colors.amber[500], borderWidth: 1, borderColor: colors.runway[100] },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
+  cardBadge: { backgroundColor: colors.amber[50], paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
+  cardBadgeText: { fontSize: 9, fontWeight: "700", color: colors.amber[600] },
+  cardNumber: { fontSize: fontSize.sm, fontWeight: "700", color: colors.brand[600], flex: 1 },
+  cardLocation: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[500], backgroundColor: colors.runway[100], paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  cardText: { fontSize: fontSize.sm, color: colors.runway[700], lineHeight: 18, marginBottom: spacing.sm },
+  cardFooter: { flexDirection: "row", justifyContent: "space-between", paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.runway[100] },
+  cardDateItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  cardDateText: { fontSize: 10, color: colors.runway[400] },
+  // Empty
+  empty: { alignItems: "center", paddingTop: 60 },
+  emptyTitle: { fontSize: fontSize.lg, fontWeight: "600", color: colors.runway[600], marginTop: spacing.md },
+  emptyText: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.xs },
+  // Modal
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modal: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.lg, maxHeight: "85%", paddingBottom: 40 },
+  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.runway[300], alignSelf: "center", marginBottom: spacing.md },
+  modalHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
+  modalNumber: { fontSize: fontSize.lg, fontWeight: "700", color: colors.brand[600] },
+  modalMeta: { backgroundColor: colors.runway[50], borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md, gap: spacing.sm },
+  metaRow: { flexDirection: "row", justifyContent: "space-between" },
+  metaLabel: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[500] },
+  metaValue: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[900] },
+  modalSectionLabel: { fontSize: 10, fontWeight: "700", color: colors.brand[600], letterSpacing: 1, marginBottom: spacing.sm },
+  modalTextScroll: { maxHeight: 250, marginBottom: spacing.md },
+  modalText: { fontSize: fontSize.sm, color: colors.runway[800], lineHeight: 20, fontFamily: "monospace" },
+  modalCloseBtn: { backgroundColor: colors.brand[600], paddingVertical: 14, borderRadius: borderRadius.md, alignItems: "center" },
+  modalCloseBtnText: { fontSize: fontSize.base, fontWeight: "700", color: colors.white },
+});

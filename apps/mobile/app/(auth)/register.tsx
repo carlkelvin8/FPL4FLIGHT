@@ -44,6 +44,8 @@ export default function RegisterScreen() {
     return Object.keys(e).length === 0;
   }
 
+  const hasValidationErrors = Object.values(errors).some((e) => e.length > 0);
+
   async function handleRegister() {
     if (!validate()) return;
     await register({ email: email.trim(), password, confirmPassword });
@@ -153,9 +155,9 @@ export default function RegisterScreen() {
               )}
 
               <PressableScale
-                style={[styles.button, isLoading && styles.buttonMuted]}
+                style={[styles.button, (isLoading || hasValidationErrors) && styles.buttonMuted]}
                 onPress={handleRegister}
-                disabled={isLoading}
+                disabled={isLoading || hasValidationErrors}
               >
                 {isLoading ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={styles.buttonText}>Create account</Text>}
               </PressableScale>

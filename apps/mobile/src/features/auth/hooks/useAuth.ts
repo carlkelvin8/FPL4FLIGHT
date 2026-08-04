@@ -7,6 +7,7 @@ import { useAuthStore } from "../stores/authStore";
 import { RegisterUseCase, type RegisterDto } from "../usecases/RegisterUseCase";
 import { SignInUseCase } from "../usecases/SignInUseCase";
 import { SignOutUseCase } from "../usecases/SignOutUseCase";
+import { unregisterPushNotifications } from "@core/push-notifications";
 
 
 const repo = new AuthRepository();
@@ -42,7 +43,13 @@ export function useAuth() {
   const signOut = useCallback(async () => {
     setLoading(true);
     setError(null);
-    await signOutUseCase.execute();
+    try {
+      // Remove push token from DB before signing out
+      await unregisterPushNotifications();
+      await signOutUseCase.execute();
+    } catch {
+      // Sign out failed — still clear local state
+    }
     reset();
     setLoading(false);
     router.replace("/(auth)/login");

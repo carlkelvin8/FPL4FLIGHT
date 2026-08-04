@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPL4FLIGHT — Digital Flight Planning for Philippine Pilots</title>
+  <meta name="description" content="FPL4FLIGHT is the all-in-one aviation app for Filipino pilots. Digital ICAO flight plans, CAAP forms, pilot logbook, E6B calculator, NOTAM viewer, weather, and real-time pilot chat.">
+  <meta name="keywords" content="flight planning, CAAP, Philippine aviation, pilot app, ICAO flight plan, logbook, E6B calculator, NOTAM, METAR, aviation forms">
+  <meta property="og:title" content="FPL4FLIGHT — Digital Flight Planning for Philippine Pilots">
+  <meta property="og:description" content="All-in-one aviation app. ICAO flight plans, CAAP forms, logbook, E6B, weather, NOTAMs & pilot chat.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://fpl4flight.io">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --brand-50: #eff6ff;
+      --brand-100: #dbeafe;
+      --brand-200: #bfdbfe;
+      --brand-400: #60a5fa;
+      --brand-500: #3b82f6;
+      --brand-600: #2563eb;
+      --brand-700: #1d4ed8;
+      --brand-800: #1e40af;
+      --brand-900: #1e3a5f;
+      --brand-950: #0f1729;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --green-400: #4ade80;
+      --green-500: #22c55e;
+      --green-600: #16a34a;
+      --amber-500: #f59e0b;
+      --amber-600: #d97706;
+      --red-500: #ef4444;
+      --white: #ffffff;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--slate-800);
+      line-height: 1.6;
+      background: var(--white);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── NAV ─── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--slate-200);
+      transition: box-shadow 0.3s;
+    }
+    .nav.scrolled { box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 64px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.25rem; color: var(--brand-600);
+      text-decoration: none;
+    }
+    .nav-logo svg { width: 32px; height: 32px; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      text-decoration: none; color: var(--slate-600); font-size: 0.875rem;
+      font-weight: 500; transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--brand-600); }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--brand-600); color: var(--white);
+      padding: 10px 24px; border-radius: 10px; font-weight: 600;
+      font-size: 0.875rem; text-decoration: none; border: none; cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--brand-700); transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--white); color: var(--brand-600);
+      padding: 10px 24px; border-radius: 10px; font-weight: 600;
+      font-size: 0.875rem; text-decoration: none;
+      border: 1.5px solid var(--brand-200); cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--brand-50); border-color: var(--brand-400); }
+    .btn-large { padding: 14px 32px; font-size: 1rem; border-radius: 12px; }
+    .mobile-menu-btn { display: none; background: none; border: none; cursor: pointer; color: var(--slate-700); }
+    .mobile-menu {
+      display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
+      background: var(--white); padding: 24px; z-index: 99;
+      flex-direction: column; gap: 20px;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      text-decoration: none; color: var(--slate-700); font-size: 1.125rem;
+      font-weight: 500; padding: 8px 0;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 140px 24px 80px;
+      background: linear-gradient(135deg, var(--brand-50) 0%, var(--white) 40%, var(--slate-50) 100%);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -50%; right: -20%;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--brand-100); color: var(--brand-700);
+      padding: 6px 16px; border-radius: 100px; font-size: 0.8rem;
+      font-weight: 600; margin-bottom: 24px;
+    }
+    .hero-badge span { color: var(--brand-400); }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 900;
+      line-height: 1.1; color: var(--slate-900);
+      max-width: 800px; margin: 0 auto 20px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.2rem; color: var(--slate-500); max-width: 560px;
+      margin: 0 auto 40px; line-height: 1.7;
+    }
+    .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .hero-stats {
+      display: flex; gap: 48px; justify-content: center; margin-top: 60px;
+      flex-wrap: wrap;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat strong {
+      display: block; font-size: 2rem; font-weight: 800; color: var(--brand-600);
+    }
+    .hero-stat span { font-size: 0.85rem; color: var(--slate-500); font-weight: 500; }
+
+    /* ─── SECTION UTILS ─── */
+    section { padding: 100px 24px; }
+    .section-header { text-align: center; max-width: 640px; margin: 0 auto 60px; }
+    .section-label {
+      display: inline-block; font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--brand-600); margin-bottom: 12px;
+    }
+    .section-header h2 {
+      font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 800;
+      color: var(--slate-900); line-height: 1.2; margin-bottom: 16px;
+    }
+    .section-header p { font-size: 1.1rem; color: var(--slate-500); }
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    /* ─── FEATURES GRID ─── */
+    .features { background: var(--slate-50); }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--white); border-radius: 16px; padding: 32px;
+      border: 1px solid var(--slate-200);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+    }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 20px;
+    }
+    .fi-blue { background: var(--brand-100); color: var(--brand-600); }
+    .fi-green { background: #dcfce7; color: var(--green-600); }
+    .fi-amber { background: #fef3c7; color: var(--amber-600); }
+    .fi-red { background: #fee2e2; color: var(--red-500); }
+    .fi-purple { background: #f3e8ff; color: #9333ea; }
+    .fi-teal { background: #ccfbf1; color: #0d9488; }
+    .feature-card h3 {
+      font-size: 1.1rem; font-weight: 700; color: var(--slate-900);
+      margin-bottom: 8px;
+    }
+    .feature-card p { font-size: 0.9rem; color: var(--slate-500); line-height: 1.6; }
+
+    /* ─── APP SHOWCASE ─── */
+    .showcase { background: var(--white); }
+    .showcase-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+    }
+    .showcase-text h2 {
+      font-size: 2.25rem; font-weight: 800; color: var(--slate-900);
+      line-height: 1.2; margin-bottom: 20px;
+    }
+    .showcase-text p { font-size: 1.05rem; color: var(--slate-500); margin-bottom: 32px; line-height: 1.7; }
+    .showcase-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+    .showcase-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 0.95rem; color: var(--slate-700);
+    }
+    .showcase-list .check {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--brand-100); color: var(--brand-600);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 0.75rem; font-weight: 700; margin-top: 2px;
+    }
+    .showcase-phone {
+      display: flex; justify-content: center; align-items: center;
+    }
+    .phone-mockup {
+      width: 280px; height: 560px;
+      background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
+      border-radius: 36px; padding: 12px;
+      box-shadow: 0 25px 60px rgba(37,99,235,0.25);
+      position: relative;
+    }
+    .phone-screen {
+      width: 100%; height: 100%;
+      background: var(--white); border-radius: 26px;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; padding: 32px;
+      color: var(--slate-600);
+    }
+    .phone-screen .phone-icon { font-size: 3rem; margin-bottom: 16px; }
+    .phone-screen h4 { font-weight: 700; color: var(--slate-900); margin-bottom: 4px; }
+    .phone-screen p { font-size: 0.8rem; }
+
+    /* ─── TOOLS SECTION ─── */
+    .tools { background: var(--slate-50); }
+    .tools-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .tool-card {
+      background: var(--white); border-radius: 14px; padding: 28px 24px;
+      text-align: center; border: 1px solid var(--slate-200);
+      transition: all 0.2s;
+    }
+    .tool-card:hover { border-color: var(--brand-300); transform: translateY(-2px); }
+    .tool-card .tool-icon { font-size: 2rem; margin-bottom: 12px; }
+    .tool-card h4 { font-size: 0.95rem; font-weight: 700; color: var(--slate-900); margin-bottom: 4px; }
+    .tool-card p { font-size: 0.8rem; color: var(--slate-500); }
+
+    /* ─── PROMOS ─── */
+    .promos { background: var(--white); }
+    .promo-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .promo-card {
+      border-radius: 16px; padding: 40px 32px; position: relative;
+      overflow: hidden; color: var(--white);
+    }
+    .promo-card::before {
+      content: ''; position: absolute; top: -40px; right: -40px;
+      width: 160px; height: 160px;
+      background: rgba(255,255,255,0.1); border-radius: 50%;
+    }
+    .promo-blue { background: linear-gradient(135deg, var(--brand-600), var(--brand-800)); }
+    .promo-green { background: linear-gradient(135deg, #059669, #065f46); }
+    .promo-amber { background: linear-gradient(135deg, #d97706, #92400e); }
+    .promo-badge {
+      display: inline-block; background: rgba(255,255,255,0.2);
+      padding: 4px 12px; border-radius: 100px; font-size: 0.75rem;
+      font-weight: 700; margin-bottom: 16px; text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .promo-card h3 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; }
+    .promo-card p { font-size: 0.95rem; opacity: 0.9; line-height: 1.6; margin-bottom: 20px; }
+    .promo-card .promo-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.15); padding: 10px 20px;
+      border-radius: 10px; color: var(--white); font-weight: 600;
+      font-size: 0.875rem; text-decoration: none;
+      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);
+      transition: background 0.2s;
+    }
+    .promo-card .promo-cta:hover { background: rgba(255,255,255,0.25); }
+
+    /* ─── PRICING ─── */
+    .pricing { background: var(--slate-50); }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; max-width: 960px; margin: 0 auto;
+    }
+    .price-card {
+      background: var(--white); border-radius: 16px; padding: 40px 32px;
+      border: 1.5px solid var(--slate-200); position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .price-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.06); }
+    .price-card.popular {
+      border-color: var(--brand-400);
+      box-shadow: 0 8px 30px rgba(37,99,235,0.12);
+    }
+    .price-popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--brand-600); color: var(--white);
+      padding: 4px 16px; border-radius: 100px; font-size: 0.75rem;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .price-card h3 { font-size: 1.25rem; font-weight: 700; color: var(--slate-900); margin-bottom: 4px; }
+    .price-card .price-desc { font-size: 0.85rem; color: var(--slate-500); margin-bottom: 20px; }
+    .price-amount {
+      display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px;
+    }
+    .price-amount .currency { font-size: 1.1rem; font-weight: 700; color: var(--slate-700); }
+    .price-amount .amount { font-size: 2.75rem; font-weight: 900; color: var(--slate-900); line-height: 1; }
+    .price-amount .period { font-size: 0.9rem; color: var(--slate-400); }
+    .price-annual { font-size: 0.8rem; color: var(--green-600); font-weight: 600; margin-bottom: 24px; }
+    .price-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .price-features li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.9rem; color: var(--slate-600);
+    }
+    .price-features .pf-check { color: var(--green-500); font-weight: 700; flex-shrink: 0; }
+    .price-features .pf-x { color: var(--slate-300); flex-shrink: 0; }
+    .price-btn {
+      display: block; width: 100%; text-align: center; padding: 12px;
+      border-radius: 10px; font-weight: 600; font-size: 0.9rem;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .price-btn-primary {
+      background: var(--brand-600); color: var(--white);
+    }
+    .price-btn-primary:hover { background: var(--brand-700); }
+    .price-btn-outline {
+      background: var(--white); color: var(--brand-600);
+      border: 1.5px solid var(--brand-200);
+    }
+    .price-btn-outline:hover { background: var(--brand-50); }
+    .price-btn-free {
+      background: var(--slate-100); color: var(--slate-700);
+    }
+    .price-btn-free:hover { background: var(--slate-200); }
+
+    /* ─── TESTIMONIALS ─── */
+    .testimonials { background: var(--white); }
+    .testimonial-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .testimonial-card {
+      background: var(--slate-50); border-radius: 16px; padding: 32px;
+      border: 1px solid var(--slate-100);
+    }
+    .testimonial-stars { color: var(--amber-500); font-size: 0.9rem; margin-bottom: 16px; letter-spacing: 2px; }
+    .testimonial-card blockquote {
+      font-size: 0.95rem; color: var(--slate-700); line-height: 1.7;
+      font-style: italic; margin-bottom: 20px;
+    }
+    .testimonial-author {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .testimonial-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--brand-100); color: var(--brand-600);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .testimonial-name { font-weight: 600; color: var(--slate-900); font-size: 0.9rem; }
+    .testimonial-role { font-size: 0.8rem; color: var(--slate-500); }
+
+    /* ─── CTA ─── */
+    .cta {
+      background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
+      color: var(--white); text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta::before {
+      content: ''; position: absolute; bottom: -100px; left: -100px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .cta h2 {
+      font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800;
+      margin-bottom: 16px; line-height: 1.2;
+    }
+    .cta p { font-size: 1.1rem; opacity: 0.85; margin-bottom: 36px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .btn-white {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--white); color: var(--brand-700);
+      padding: 14px 32px; border-radius: 12px; font-weight: 700;
+      font-size: 1rem; text-decoration: none; border: none; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .cta-stores { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+    .store-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      padding: 10px 20px; border-radius: 10px; color: var(--white);
+      text-decoration: none; transition: background 0.2s;
+    }
+    .store-badge:hover { background: rgba(255,255,255,0.2); }
+    .store-badge svg { width: 24px; height: 24px; fill: var(--white); }
+    .store-badge .store-text { text-align: left; }
+    .store-badge .store-label { font-size: 0.65rem; opacity: 0.8; }
+    .store-badge .store-name { font-size: 0.95rem; font-weight: 700; }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      background: var(--slate-900); color: var(--slate-400); padding: 60px 24px 32px;
+    }
+    .footer-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px; max-width: 1200px; margin: 0 auto 40px;
+    }
+    .footer-brand h3 { color: var(--white); font-size: 1.25rem; font-weight: 800; margin-bottom: 12px; }
+    .footer-brand p { font-size: 0.875rem; line-height: 1.7; }
+    .footer-col h4 { color: var(--slate-200); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+    .footer-col a { display: block; color: var(--slate-400); text-decoration: none; font-size: 0.875rem; padding: 4px 0; transition: color 0.2s; }
+    .footer-col a:hover { color: var(--white); }
+    .footer-bottom {
+      max-width: 1200px; margin: 0 auto; padding-top: 24px;
+      border-top: 1px solid var(--slate-800);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.8rem; flex-wrap: wrap; gap: 12px;
+    }
+    .footer-bottom a { color: var(--slate-400); text-decoration: none; }
+    .footer-bottom a:hover { color: var(--white); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .mobile-menu-btn { display: block; }
+      .showcase-grid { grid-template-columns: 1fr; }
+      .showcase-phone { order: -1; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .hero-stats { gap: 24px; }
+    }
+    @media (max-width: 480px) {
+      .footer-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── NAV ─── -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#2563eb"/><path d="M8 22l8-14 8 14" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 18h10" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".6"/></svg>
+        FPL4FLIGHT
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#tools">Tools</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#promos">Promos</a>
+        <a href="#download" class="btn-primary">Download Free</a>
+      </div>
+      <button class="mobile-menu-btn" onclick="document.getElementById('mobileMenu').classList.toggle('open')" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#features" onclick="this.parentElement.classList.remove('open')">Features</a>
+    <a href="#tools" onclick="this.parentElement.classList.remove('open')">Tools</a>
+    <a href="#pricing" onclick="this.parentElement.classList.remove('open')">Pricing</a>
+    <a href="#promos" onclick="this.parentElement.classList.remove('open')">Promos</a>
+    <a href="#download" class="btn-primary" onclick="this.parentElement.classList.remove('open')">Download Free</a>
+  </div>
+
+  <!-- ─── HERO ─── -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span>&#9992;</span> Built for Filipino Pilots
+    </div>
+    <h1>Your Complete <em>Digital Flight Deck</em></h1>
+    <p>ICAO flight plans, CAAP forms, pilot logbook, E6B calculator, NOTAMs, live weather, and real-time pilot chat — all in one powerful app.</p>
+    <div class="hero-buttons">
+      <a href="#download" class="btn-primary btn-large">&#9654;&ensp;Download Free on Android</a>
+      <a href="#features" class="btn-secondary btn-large">Explore Features</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><strong>35+</strong><span>Aviation Tools</span></div>
+      <div class="hero-stat"><strong>60+</strong><span>Features</span></div>
+      <div class="hero-stat"><strong>20+</strong><span>Philippine Airports</span></div>
+      <div class="hero-stat"><strong>100%</strong><span>CAAP Compliant</span></div>
+    </div>
+  </section>
+
+  <!-- ─── FEATURES ─── -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Features</span>
+        <h2>Everything a Pilot Needs, in One App</h2>
+        <p>From pre-flight planning to post-flight logging — FPL4FLIGHT covers every phase of your flight operations.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon fi-blue">&#9992;</div>
+          <h3>ICAO Flight Plans</h3>
+          <p>Create and submit CAAP-compliant ICAO flight plans (ATS 2019-1). Fill out forms digitally with auto-populated aircraft data and export to PDF.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-green">&#128196;</div>
+          <h3>Digital CAAP Forms</h3>
+          <p>Access PNP arrival checklists, pre-flight checklists, passenger manifests, and flight logbooks. All forms match official government templates with pixel-perfect PDF export.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-purple">&#128172;</div>
+          <h3>Pilot Community Chat</h3>
+          <p>Connect with fellow pilots in real-time. Share weather reports, coordinate flights, exchange NOTAMs, and collaborate across multiple channels with reactions, replies, voice messages, and image sharing.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-amber">&#128506;</div>
+          <h3>Live Map & Tracking</h3>
+          <p>Full-screen GPS map with real-time position, speed, altitude, and heading. Track flights with background GPS, view track polylines, and access a database of 20+ Philippine airports with ICAO codes.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-teal">&#128203;</div>
+          <h3>Pilot Logbook</h3>
+          <p>Comprehensive hour logging — PIC, SIC, Dual, Day, Night, Cross-Country, IFR, instrument approaches, and aircraft category landings. Includes currency tracker per FAR 61.57 rules and PDF export.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-red">&#9889;</div>
+          <h3>Flight Scheduling</h3>
+          <p>Organize your flights with Today, Tomorrow, and Upcoming sections. Full flight details with route visualization, gate info, PIC assignments, and status tracking.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-blue">&#128295;</div>
+          <h3>Aircraft Management</h3>
+          <p>Maintain your fleet with detailed aircraft profiles — registration, type, ICAO equipment codes, wake turbulence category, and emergency/survival equipment configuration.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-green">&#128221;</div>
+          <h3>Custom Form Builder</h3>
+          <p>Create your own form templates with sections and field types — text, textarea, select, checkbox. Save templates to the cloud and share with your team.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-purple">&#128247;</div>
+          <h3>QR Code Sharing</h3>
+          <p>Generate QR codes for form links, flight plans, or custom URLs. Share instantly with ground crew, dispatch, or fellow pilots.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-amber">&#128274;</div>
+          <h3>Offline Mode & Sync</h3>
+          <p>Work offline with automatic data synchronization when you reconnect. Your forms, flights, and logbook entries are always safe with cloud backup.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-teal">&#127891;</div>
+          <h3>Digital Pilot ID</h3>
+          <p>Elegant glass-design digital pilot identification card. Store your license number, type, and medical certificate expiry — all accessible from your pocket.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-red">&#128101;</div>
+          <h3>Team & Fleet Management</h3>
+          <p>Manage crew members with role-based access, share aircraft fleets, and maintain audit trails. Perfect for flight schools and charter operators.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TOOLS ─── -->
+  <section class="tools" id="tools">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Aviation Tools</span>
+        <h2>Professional Tools, Right in Your Pocket</h2>
+        <p>Replace your E6B, flight computer, and paper references with a single app.</p>
+      </div>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-icon">&#9729;</div>
+          <h4>Weather & METAR</h4>
+          <p>Real-time METAR & TAF data by ICAO station code</p>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#9888;</div>
+          <h4>NOTAM Viewer</h4>
+          <p>Live NOTAMs from aviationweather.gov with search history</p>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128200;</div>
+          <h4>E6B Calculator</h4>
+          <p>TAS, wind correction, fuel planning, distance/speed/time</p>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#9878;</div>
+          <h4>Weight & Balance</h4>
+          <p>CG calculator with envelope visualization & PDF export</p>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128506;</div>
+          <h4>Flight Planning</h4>
+          <p>VFR/IFR plans with fuel calculations & PDF export</p>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128204;</div>
+          <h4>Navigation Log</h4>
+          <p>Waypoint-by-waypoint planning with course & fuel data</p>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#128214;</div>
+          <h4>AIP Reference</h4>
+          <p>Philippine AIP — GEN, ENR, and AD sections in-app</p>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">&#9200;</div>
+          <h4>Duty Tracker</h4>
+          <p>CAAP/ICAO FRMS compliance with visual duty limits</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── APP SHOWCASE ─── -->
+  <section class="showcase">
+    <div class="container">
+      <div class="showcase-grid">
+        <div class="showcase-text">
+          <span class="section-label">Why FPL4FLIGHT</span>
+          <h2>Designed by Pilots, for Pilots</h2>
+          <p>We built FPL4FLIGHT because Filipino pilots deserve a modern, purpose-built tool that understands CAAP requirements and the realities of flying in the Philippines.</p>
+          <ul class="showcase-list">
+            <li><span class="check">&#10003;</span> CAAP-compliant ICAO flight plan forms (ATS 2019-1)</li>
+            <li><span class="check">&#10003;</span> Pixel-perfect PDF export on real government templates</li>
+            <li><span class="check">&#10003;</span> 20+ Philippine airports with ICAO codes & coordinates</li>
+            <li><span class="check">&#10003;</span> Real-time METAR, TAF, and NOTAM data</li>
+            <li><span class="check">&#10003;</span> Biometric lock & secure credential storage</li>
+            <li><span class="check">&#10003;</span> Works offline — sync when you land</li>
+            <li><span class="check">&#10003;</span> Free starter plan with no credit card required</li>
+          </ul>
+        </div>
+        <div class="showcase-phone">
+          <div class="phone-mockup">
+            <div class="phone-screen">
+              <div class="phone-icon">&#9992;</div>
+              <h4>FPL4FLIGHT</h4>
+              <p>Digital Flight Planning</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── PROMOS & CAMPAIGNS ─── -->
+  <section class="promos" id="promos">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Promotions</span>
+        <h2>Special Offers & Campaigns</h2>
+        <p>Take advantage of exclusive deals and limited-time promotions for Filipino aviation professionals.</p>
+      </div>
+      <div class="promo-grid">
+        <div class="promo-card promo-blue">
+          <span class="promo-badge">Limited Time</span>
+          <h3>30% Off Annual Pro</h3>
+          <p>Go annual and save big. Get Pro at just &#8369;350/month when you commit to yearly billing. Unlock unlimited aircraft, flights, offline mode, and PDF export.</p>
+          <a href="#download" class="promo-cta">Claim Offer &rarr;</a>
+        </div>
+        <div class="promo-card promo-green">
+          <span class="promo-badge">Student Pilots</span>
+          <h3>Free Pro for Students</h3>
+          <p>Currently enrolled in flight school? Email us with your student ID and get Pro features free for 6 months. Build your logbook from day one.</p>
+          <a href="mailto:support@fpl4flight.io" class="promo-cta">Apply Now &rarr;</a>
+        </div>
+        <div class="promo-card promo-amber">
+          <span class="promo-badge">Refer & Earn</span>
+          <h3>Refer a Pilot, Get Rewards</h3>
+          <p>Share FPL4FLIGHT with your crew. For every pilot who signs up through your referral, you both earn 1 month of Pro free.</p>
+          <a href="#download" class="promo-cta">Start Referring &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── PRICING ─── -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Pricing</span>
+        <h2>Simple, Transparent Pricing</h2>
+        <p>Start free. Upgrade when you need more. No hidden fees.</p>
+      </div>
+      <div class="pricing-grid">
+        <!-- Starter -->
+        <div class="price-card">
+          <h3>Starter</h3>
+          <p class="price-desc">Perfect for getting started</p>
+          <div class="price-amount">
+            <span class="currency">&#8369;</span>
+            <span class="amount">0</span>
+            <span class="period">forever</span>
+          </div>
+          <p class="price-annual">&nbsp;</p>
+          <ul class="price-features">
+            <li><span class="pf-check">&#10003;</span> 5 aircraft profiles</li>
+            <li><span class="pf-check">&#10003;</span> 10 scheduled flights</li>
+            <li><span class="pf-check">&#10003;</span> Basic form templates</li>
+            <li><span class="pf-check">&#10003;</span> Map view</li>
+            <li><span class="pf-check">&#10003;</span> E6B calculator</li>
+            <li><span class="pf-check">&#10003;</span> Weather & METAR</li>
+            <li><span class="pf-x">&#10005;</span> <span style="color:var(--slate-400)">PDF export</span></li>
+            <li><span class="pf-x">&#10005;</span> <span style="color:var(--slate-400)">Offline mode</span></li>
+          </ul>
+          <a href="#download" class="price-btn price-btn-free">Get Started Free</a>
+        </div>
+        <!-- Pro -->
+        <div class="price-card popular">
+          <span class="price-popular-badge">Most Popular</span>
+          <h3>Pro</h3>
+          <p class="price-desc">For serious pilots</p>
+          <div class="price-amount">
+            <span class="currency">&#8369;</span>
+            <span class="amount">499</span>
+            <span class="period">/month</span>
+          </div>
+          <p class="price-annual">Save 30% with annual billing (&#8369;4,199/yr)</p>
+          <ul class="price-features">
+            <li><span class="pf-check">&#10003;</span> Unlimited aircraft</li>
+            <li><span class="pf-check">&#10003;</span> Unlimited flights</li>
+            <li><span class="pf-check">&#10003;</span> All form templates</li>
+            <li><span class="pf-check">&#10003;</span> PDF export & email</li>
+            <li><span class="pf-check">&#10003;</span> Offline mode & sync</li>
+            <li><span class="pf-check">&#10003;</span> Flight planning & nav log</li>
+            <li><span class="pf-check">&#10003;</span> Duty tracker & logbook</li>
+            <li><span class="pf-check">&#10003;</span> Priority email support</li>
+          </ul>
+          <a href="#download" class="price-btn price-btn-primary">Upgrade to Pro</a>
+        </div>
+        <!-- Team -->
+        <div class="price-card">
+          <h3>Team</h3>
+          <p class="price-desc">For flight schools & operators</p>
+          <div class="price-amount">
+            <span class="currency">&#8369;</span>
+            <span class="amount">1,499</span>
+            <span class="period">/month</span>
+          </div>
+          <p class="price-annual">Save 30% with annual billing (&#8369;12,499/yr)</p>
+          <ul class="price-features">
+            <li><span class="pf-check">&#10003;</span> Everything in Pro</li>
+            <li><span class="pf-check">&#10003;</span> Up to 10 crew members</li>
+            <li><span class="pf-check">&#10003;</span> Role-based access control</li>
+            <li><span class="pf-check">&#10003;</span> Shared aircraft fleet</li>
+            <li><span class="pf-check">&#10003;</span> Audit trail & logs</li>
+            <li><span class="pf-check">&#10003;</span> Custom form builder</li>
+            <li><span class="pf-check">&#10003;</span> Team chat channels</li>
+            <li><span class="pf-check">&#10003;</span> Dedicated account manager</li>
+          </ul>
+          <a href="#download" class="price-btn price-btn-outline">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TESTIMONIALS ─── -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Trusted by Pilots</span>
+        <h2>What Pilots Are Saying</h2>
+        <p>Hear from aviation professionals who use FPL4FLIGHT every day.</p>
+      </div>
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>"FPL4FLIGHT replaced my paper logbook, E6B, and CAAP forms. Everything I need is in one app. The PDF export on real government templates is a game-changer."</blockquote>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">JM</div>
+            <div>
+              <div class="testimonial-name">Capt. Jose Mendoza</div>
+              <div class="testimonial-role">ATP Pilot, Cebu Pacific</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>"As a flight instructor, I recommend FPL4FLIGHT to all my students. The flight planning tools and NOTAM viewer save hours of pre-flight preparation. The pilot chat is also excellent for sharing weather updates."</blockquote>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">AR</div>
+            <div>
+              <div class="testimonial-name">Capt. Ana Reyes</div>
+              <div class="testimonial-role">CFI, Airborne Aviation Academy</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>"The duty tracker with CAAP fatigue limits is incredibly useful. No more mental math on rest requirements. And the offline mode means I can log flights even without internet at remote airstrips."</blockquote>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">RD</div>
+            <div>
+              <div class="testimonial-name">Capt. Rico Delgado</div>
+              <div class="testimonial-role">Charter Pilot, PAL Express</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA ─── -->
+  <section class="cta" id="download">
+    <div class="container">
+      <h2>Ready to Upgrade Your Flight Deck?</h2>
+      <p>Join thousands of Filipino pilots using FPL4FLIGHT. Download free today — no credit card required.</p>
+      <div class="cta-stores">
+        <a href="https://play.google.com/store/apps/details?id=io.pilotforms.app" class="store-badge" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M3 20.5V3.5C3 2.91 3.34 2.39 3.84 2.15L13.69 12L3.84 21.85C3.34 21.61 3 21.09 3 20.5ZM16.81 15.12L6.05 21.34L14.54 12.85L16.81 15.12ZM20.16 10.81C20.5 11.08 20.75 11.5 20.75 12C20.75 12.5 20.53 12.9 20.18 13.18L17.89 14.5L15.39 12L17.89 9.5L20.16 10.81ZM6.05 2.66L16.81 8.88L14.54 11.15L6.05 2.66Z"/></svg>
+          <div class="store-text">
+            <div class="store-label">Get it on</div>
+            <div class="store-name">Google Play</div>
+          </div>
+        </a>
+        <a href="mailto:support@fpl4flight.io?subject=iOS%20TestFlight%20Request" class="store-badge">
+          <svg viewBox="0 0 24 24"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.47C4.25 16.56 2.93 11.3 4.7 7.72C5.57 5.94 7.36 4.86 9.28 4.84C10.56 4.81 11.78 5.72 12.57 5.72C13.36 5.72 14.85 4.62 16.4 4.8C17.07 4.83 18.89 5.08 20.04 6.82C19.91 6.88 17.72 8.08 17.75 10.72C17.78 13.82 20.49 14.89 20.52 14.9C20.49 14.97 20.1 16.33 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+          <div class="store-text">
+            <div class="store-label">Coming soon to</div>
+            <div class="store-name">App Store</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h3>&#9992; FPL4FLIGHT</h3>
+        <p>Digital flight planning, ICAO forms, pilot logbook &amp; aviation tools for Philippine pilots. Built with &#9829; by aviators, for aviators.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#tools">Aviation Tools</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#download">Download</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="#">About Us</a>
+        <a href="mailto:support@fpl4flight.io">Support</a>
+        <a href="#">Changelog</a>
+        <a href="#">Blog</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="https://fpl4flight.io/privacy">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="mailto:privacy@fpl4flight.io">Data Requests</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 FPL4FLIGHT. All rights reserved.</span>
+      <span>
+        <a href="mailto:support@fpl4flight.io">support@fpl4flight.io</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    // Nav scroll shadow
+    window.addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 10);
+    });
+  </script>
+</body>
+</html>

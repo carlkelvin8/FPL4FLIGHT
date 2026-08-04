@@ -38,21 +38,36 @@ export type Feature =
   | "admin_manage_templates"
   | "admin_delete_any_message";
 
-/** Permission matrix — which roles can access which features */
+/** Permission matrix — all features available to all roles (pro gating removed) */
 const PERMISSIONS: Record<UserRole, Feature[]> = {
   pilot: [
     "forms_create",
     "forms_export_pdf",
+    "forms_email",
+    "forms_unlimited",
+    "form_builder",
+    "aircraft_unlimited",
+    "flights_unlimited",
     "logbook",
     "e6b",
     "weight_balance",
-    "chat",
-    "weather",
-    "aip",
     "notams",
+    "navlog",
+    "flight_planning",
+    "aip",
+    "weather",
+    "duty_tracker",
+    "live_tracking",
+    "chat",
+    "chat_channels_create",
+    "chat_file_upload",
+    "chat_voice",
+    "offline_sync",
+    "data_export",
+    "signature",
+    "qr_share",
   ],
   pro: [
-    // Everything in pilot +
     "forms_create",
     "forms_export_pdf",
     "forms_email",
@@ -80,7 +95,6 @@ const PERMISSIONS: Record<UserRole, Feature[]> = {
     "qr_share",
   ],
   admin: [
-    // Everything in pro +
     "forms_create",
     "forms_export_pdf",
     "forms_email",
@@ -113,9 +127,9 @@ const PERMISSIONS: Record<UserRole, Feature[]> = {
   ],
 };
 
-/** Limits per role */
+/** Limits per role — no restrictions for now */
 export const ROLE_LIMITS: Record<UserRole, { maxForms: number; maxAircraft: number; maxFlights: number }> = {
-  pilot: { maxForms: 5, maxAircraft: 2, maxFlights: 5 },
+  pilot: { maxForms: 999, maxAircraft: 999, maxFlights: 999 },
   pro: { maxForms: 999, maxAircraft: 999, maxFlights: 999 },
   admin: { maxForms: 999, maxAircraft: 999, maxFlights: 999 },
 };

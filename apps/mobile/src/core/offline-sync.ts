@@ -18,7 +18,10 @@ interface SyncQueueItem {
   payload: string;
   created_at: string;
   synced: number;
+  retry_count: number;
 }
+
+const MAX_RETRIES = 5;
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -33,9 +36,12 @@ async function getDb(): Promise<SQLite.SQLiteDatabase> {
         record_id TEXT NOT NULL,
         payload TEXT NOT NULL,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        synced INTEGER DEFAULT 0
+        synced INTEGER DEFAULT 0,
+        retry_count INTEGER DEFAULT 0
       );
     `);
+    // Add retry_count column if upgrading from old schema
+    try { await db.execAsync("ALTER TABLE sync_queue ADD COLUMN retry_count INTEGER DEFAULT 0;"); } catch { /* column already exists */ }
   }
   return db;
 }
@@ -54,11 +60,12 @@ export async function queueOperation(
   );
 }
 
-/** Get all pending (unsynced) operations */
+/** Get all pending (unsynced) operations that haven't exceeded retry limit */
 export async function getPendingOperations(): Promise<SyncQueueItem[]> {
   const database = await getDb();
   const rows = await database.getAllAsync<SyncQueueItem>(
-    "SELECT * FROM sync_queue WHERE synced = 0 ORDER BY created_at ASC",
+    "SELECT * FROM sync_queue WHERE synced = 0 AND retry_count < ? ORDER BY created_at ASC",
+    [MAX_RETRIES],
   );
   return rows;
 }
@@ -72,23 +79,35 @@ export async function processSyncQueue(): Promise<{ synced: number; failed: numb
   for (const item of pending) {
     try {
       const payload = JSON.parse(item.payload);
+      let opError: { message: string } | null = null;
 
       if (item.operation === "INSERT") {
         const { error } = await supabase.from(item.table_name).insert(payload);
-        if (error) { failed++; continue; }
+        opError = error;
       } else if (item.operation === "UPDATE") {
         const { error } = await supabase.from(item.table_name).update(payload).eq("id", item.record_id);
-        if (error) { failed++; continue; }
+        opError = error;
       } else if (item.operation === "DELETE") {
         const { error } = await supabase.from(item.table_name).delete().eq("id", item.record_id);
-        if (error) { failed++; continue; }
+        opError = error;
+      }
+
+      const database = await getDb();
+      if (opError) {
+        // Increment retry count
+        await database.runAsync("UPDATE sync_queue SET retry_count = retry_count + 1 WHERE id = ?", [item.id]);
+        if (__DEV__) console.log(`[Sync] Item ${item.id} failed (retry ${item.retry_count + 1}/${MAX_RETRIES}):`, opError.message);
+        failed++;
+        continue;
       }
 
       // Mark as synced
-      const database = await getDb();
       await database.runAsync("UPDATE sync_queue SET synced = 1 WHERE id = ?", [item.id]);
       synced++;
     } catch {
+      // Increment retry count on unexpected errors too
+      const database = await getDb();
+      await database.runAsync("UPDATE sync_queue SET retry_count = retry_count + 1 WHERE id = ?", [item.id]).catch(() => {});
       failed++;
     }
   }

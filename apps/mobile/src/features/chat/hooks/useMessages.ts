@@ -27,7 +27,7 @@ export function useMessages(channelId: string) {
       return lastPage[0]?.createdAt.toISOString();
     },
     staleTime: 1000 * 5,
-    refetchInterval: 1000 * 10, // Poll every 10s as fallback for realtime
+    refetchInterval: 1000 * 60, // Poll every 60s as a fallback (realtime handles the rest)
     enabled: !!channelId,
   });
 

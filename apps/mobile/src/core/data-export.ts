@@ -4,6 +4,7 @@
  */
 
 import * as Sharing from "expo-sharing";
+import { File, Paths } from "expo-file-system/next";
 import { supabase } from "@core/network";
 
 interface ExportData {
@@ -41,19 +42,34 @@ export async function exportAllData(): Promise<{ success: boolean; error?: strin
       dutyTracker: duty.data ?? [],
     };
 
-    // Write to file
-    const fileName = `fpl4flight_backup_${new Date().toISOString().split("T")[0]}.json`;
-    // Use sharing directly with the data as a string
-    // In production, write to a temp file and share
     const jsonStr = JSON.stringify(exportData, null, 2);
-    console.log(`[Export] ${jsonStr.length} bytes prepared for export`);
+    if (__DEV__) console.log(`[Export] ${jsonStr.length} bytes prepared for export`);
 
-    // For now, we'll use share with a simple alert showing success
-    // Full file sharing requires expo-file-system legacy API or a temp file approach
+    // Write to a temp file and share it
+    const fileName = `fpl4flight_backup_${new Date().toISOString().split("T")[0]}.json`;
+    const filePath = `${Paths.cache}/${fileName}`;
+
+    // Remove existing file if present
+    const outputFile = new File(filePath);
+    if (outputFile.exists) outputFile.delete();
+
+    // Write JSON content
+    const newFile = new File(filePath);
+    newFile.create();
+    newFile.write(jsonStr);
+
+    // Share the file
+    const canShare = await Sharing.isAvailableAsync();
+    if (canShare) {
+      await Sharing.shareAsync(filePath, {
+        mimeType: "application/json",
+        dialogTitle: "Export FPL4FLIGHT Backup",
+      });
+    }
 
     return { success: true };
-  } catch (e: any) {
-    return { success: false, error: e.message ?? "Export failed" };
+  } catch (e: unknown) {
+    return { success: false, error: e instanceof Error ? e.message : "Export failed" };
   }
 }
 

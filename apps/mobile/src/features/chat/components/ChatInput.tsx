@@ -77,6 +77,7 @@ export function ChatInput({ onSend, onTyping, onStopTyping, onTextChange, sendin
           (!text.trim() || sending || disabled) && styles.sendBtnDisabled,
         ]}
         disabled={!text.trim() || sending || disabled}
+        accessibilityLabel="Send message"
       >
         <Ionicons
           name={sending ? "hourglass-outline" : "send"}

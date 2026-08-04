@@ -142,6 +142,30 @@ const migrations = [
   `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS medical_expiry TEXT;`,
   // Analytics events table
   `CREATE TABLE IF NOT EXISTS analytics_events (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, event_name TEXT NOT NULL, properties JSONB DEFAULT '{}', user_id TEXT, created_at TIMESTAMPTZ DEFAULT NOW());`,
+  // Flight plans persistence
+  `CREATE TABLE IF NOT EXISTS flight_plans (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, flight_rule TEXT DEFAULT 'VFR', departure TEXT DEFAULT '', destination TEXT DEFAULT '', alternate TEXT DEFAULT '', cruise_alt TEXT DEFAULT '', cruise_speed TEXT DEFAULT '', route TEXT DEFAULT '', fuel_on_board TEXT DEFAULT '', fuel_burn TEXT DEFAULT '', remarks TEXT DEFAULT '', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW());`,
+  `ALTER TABLE flight_plans ENABLE ROW LEVEL SECURITY;`,
+  `DO $$ BEGIN CREATE POLICY "fp1" ON flight_plans FOR SELECT USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "fp2" ON flight_plans FOR INSERT WITH CHECK (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "fp3" ON flight_plans FOR UPDATE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "fp4" ON flight_plans FOR DELETE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  // Navigation logs persistence
+  `CREATE TABLE IF NOT EXISTS navlogs (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, departure TEXT DEFAULT '', destination TEXT DEFAULT '', aircraft TEXT DEFAULT '', date TEXT DEFAULT '', cruise_alt TEXT DEFAULT '', cruise_tas TEXT DEFAULT '', waypoints JSONB DEFAULT '[]', updated_at TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW());`,
+  `ALTER TABLE navlogs ENABLE ROW LEVEL SECURITY;`,
+  `DO $$ BEGIN CREATE POLICY "nl1" ON navlogs FOR SELECT USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "nl2" ON navlogs FOR INSERT WITH CHECK (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "nl3" ON navlogs FOR UPDATE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "nl4" ON navlogs FOR DELETE USING (auth.uid()=user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  // Subscriptions table (for admin dashboard billing management)
+  `CREATE TABLE IF NOT EXISTS subscriptions (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, status TEXT NOT NULL DEFAULT 'trialing' CHECK (status IN ('trialing','active','past_due','canceled','expired')), plan TEXT NOT NULL DEFAULT 'monthly' CHECK (plan IN ('monthly','annual')), trial_ends_at TIMESTAMPTZ, current_period_end TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'), external_id TEXT, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());`,
+  `ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;`,
+  `DO $$ BEGIN CREATE POLICY "sub_admin_all" ON subscriptions FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "sub_user_read" ON subscriptions FOR SELECT USING (auth.uid() = user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  // Chat bans table (admin moderation)
+  `CREATE TABLE IF NOT EXISTS chat_bans (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE, reason TEXT DEFAULT '', banned_by TEXT DEFAULT '', banned_at TIMESTAMPTZ DEFAULT NOW());`,
+  `ALTER TABLE chat_bans ENABLE ROW LEVEL SECURITY;`,
+  `DO $$ BEGIN CREATE POLICY "ban_admin_all" ON chat_bans FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
+  `DO $$ BEGIN CREATE POLICY "ban_user_read" ON chat_bans FOR SELECT USING (auth.uid() = user_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
 ];
 
 async function run() {

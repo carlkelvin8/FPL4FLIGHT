@@ -172,7 +172,9 @@ export class AuthRepository implements IAuthRepository {
       await persistSession(session);
       return ok(session);
     } catch (e) {
-      return err(AUTH_ERROR_CODES.NETWORK_ERROR, "Network error during sign in.", e);
+      const message = e instanceof Error ? e.message : "Network error during sign in.";
+      const code = message.includes("fetch") || message.includes("network") ? AUTH_ERROR_CODES.NETWORK_ERROR : AUTH_ERROR_CODES.UNKNOWN;
+      return err(code, message, e);
     }
   }
 

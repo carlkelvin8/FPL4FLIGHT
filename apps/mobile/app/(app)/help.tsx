@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -38,7 +38,7 @@ export default function HelpScreen() {
         {/* Contact */}
         <Text style={styles.sectionLabel}>CONTACT US</Text>
         <View style={styles.contactCard}>
-          <PressableScale style={styles.contactRow} haptic>
+          <PressableScale style={styles.contactRow} haptic onPress={() => Linking.openURL("mailto:support@fpl4flight.io")}>
             <View style={styles.contactIcon}>
               <Ionicons name="mail-outline" size={20} color={colors.brand[600]} />
             </View>
@@ -48,7 +48,7 @@ export default function HelpScreen() {
             </View>
           </PressableScale>
           <View style={styles.divider} />
-          <PressableScale style={styles.contactRow} haptic>
+          <PressableScale style={styles.contactRow} haptic onPress={() => Linking.openURL("mailto:support@fpl4flight.io?subject=Live%20Chat%20Request")}>
             <View style={styles.contactIcon}>
               <Ionicons name="chatbubble-outline" size={20} color={colors.brand[600]} />
             </View>

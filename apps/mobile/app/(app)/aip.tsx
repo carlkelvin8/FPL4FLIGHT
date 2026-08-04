@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, SectionList, TouchableOpacity, Modal, ActivityIndicator, TextInput, ScrollView } from "react-native";
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, Modal, ActivityIndicator, TextInput, ScrollView, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { WebView } from "react-native-webview";
-import { supabase, SUPABASE_URL } from "@core/network";
-import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
-import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { supabase, supabaseUrl } from "@core/network";
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 
 interface AIPDoc {
   id: string;
@@ -20,17 +19,15 @@ interface AIPSection {
   data: AIPDoc[];
 }
 
-const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/aip-docs`;
+const STORAGE_BASE = `${supabaseUrl}/storage/v1/object/public/aip-docs`;
 
 export default function AIPScreen() {
   const insets = useSafeAreaInsets();
-  const { colors: theme } = useAppTheme();
   const [sections, setSections] = useState<AIPSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingDoc, setViewingDoc] = useState<AIPDoc | null>(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
-  const styles = createStyles(theme);
 
   useEffect(() => {
     loadPDFs();
@@ -64,7 +61,10 @@ export default function AIPScreen() {
       }
 
       setSections(loadedSections);
-    } catch { /* silently fail */ }
+    } catch (e) {
+      if (__DEV__) console.log("[AIP] Load failed:", e instanceof Error ? e.message : e);
+      Alert.alert("Load Error", "Failed to load AIP documents. Check your connection and try again.");
+    }
     setLoading(false);
   }
 
@@ -103,9 +103,9 @@ export default function AIPScreen() {
         </View>
         {/* Search */}
         <View style={styles.searchRow}>
-          <Ionicons name="search" size={16} color={theme.textMuted} />
-          <TextInput style={styles.searchInput} placeholder="Search documents..." placeholderTextColor={theme.textMuted} value={search} onChangeText={setSearch} autoCapitalize="none" autoCorrect={false} />
-          {search.length > 0 && <TouchableOpacity onPress={() => setSearch("")}><Ionicons name="close-circle" size={18} color={theme.textMuted} /></TouchableOpacity>}
+          <Ionicons name="search" size={16} color={colors.runway[400]} />
+          <TextInput style={styles.searchInput} placeholder="Search documents..." placeholderTextColor={colors.runway[400]} value={search} onChangeText={setSearch} autoCapitalize="none" autoCorrect={false} />
+          {search.length > 0 && <TouchableOpacity onPress={() => setSearch("")}><Ionicons name="close-circle" size={18} color={colors.runway[300]} /></TouchableOpacity>}
         </View>
         {/* Filter chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
@@ -136,7 +136,7 @@ export default function AIPScreen() {
             <TouchableOpacity style={styles.card} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setViewingDoc(item); }} activeOpacity={0.7}>
               <Ionicons name="document-text" size={18} color={colors.red[500]} />
               <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+              <Ionicons name="chevron-forward" size={16} color={colors.runway[400]} />
             </TouchableOpacity>
           )}
         />
@@ -166,37 +166,36 @@ export default function AIPScreen() {
   );
 }
 
-const createStyles = (theme: ThemeColors) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.background },
-    header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
-    headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
-    title: { fontSize: 24, fontWeight: "700", color: theme.textPrimary },
-    subtitle: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: 2 },
-    countBadge: { alignItems: "center", backgroundColor: colors.brand[50], paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.md },
-    countNum: { fontSize: fontSize.lg, fontWeight: "700", color: colors.brand[600] },
-    countLabel: { fontSize: 8, fontWeight: "600", color: colors.brand[500] },
-    searchRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: theme.background, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border, paddingHorizontal: spacing.md, height: 40, marginBottom: spacing.sm },
-    searchInput: { flex: 1, fontSize: fontSize.sm, color: theme.textPrimary },
-    filterRow: { gap: spacing.xs, paddingBottom: spacing.xs },
-    filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: borderRadius.full, backgroundColor: theme.borderLight },
-    filterChipActive: { backgroundColor: colors.brand[600] },
-    filterChipText: { fontSize: 11, fontWeight: "600", color: theme.textSecondary },
-    filterChipTextActive: { color: colors.white },
-    loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-    loadingText: { fontSize: fontSize.sm, color: theme.textMuted, marginTop: spacing.md },
-    // Sections
-    sectionHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
-    sectionTitle: { fontSize: fontSize.sm, fontWeight: "700", color: colors.brand[600], flex: 1 },
-    sectionCount: { fontSize: fontSize.xs, fontWeight: "600", color: theme.textMuted, backgroundColor: theme.borderLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-    // Cards
-    card: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: theme.surface, marginHorizontal: spacing.md, paddingHorizontal: spacing.md, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.borderLight },
-    cardTitle: { flex: 1, fontSize: fontSize.sm, fontWeight: "500", color: theme.textPrimary },
-    // Viewer
-    viewerContainer: { flex: 1, backgroundColor: theme.background },
-    viewerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
-    viewerBack: { flexDirection: "row", alignItems: "center", gap: 2, width: 60 },
-    viewerBackText: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "500" },
-    viewerTitle: { fontSize: fontSize.sm, fontWeight: "700", color: theme.textPrimary, flex: 1, textAlign: "center" },
-    webview: { flex: 1 },
-  });
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.runway[50] },
+  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm },
+  title: { fontSize: 24, fontWeight: "700", color: colors.runway[900] },
+  subtitle: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
+  countBadge: { alignItems: "center", backgroundColor: colors.brand[50], paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.md },
+  countNum: { fontSize: fontSize.lg, fontWeight: "700", color: colors.brand[600] },
+  countLabel: { fontSize: 8, fontWeight: "600", color: colors.brand[500] },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.runway[50], borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.runway[200], paddingHorizontal: spacing.md, height: 40, marginBottom: spacing.sm },
+  searchInput: { flex: 1, fontSize: fontSize.sm, color: colors.runway[900] },
+  filterRow: { gap: spacing.xs, paddingBottom: spacing.xs },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: borderRadius.full, backgroundColor: colors.runway[100] },
+  filterChipActive: { backgroundColor: colors.brand[600] },
+  filterChipText: { fontSize: 11, fontWeight: "600", color: colors.runway[600] },
+  filterChipTextActive: { color: colors.white },
+  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loadingText: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: spacing.md },
+  // Sections
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
+  sectionTitle: { fontSize: fontSize.sm, fontWeight: "700", color: colors.brand[600], flex: 1 },
+  sectionCount: { fontSize: fontSize.xs, fontWeight: "600", color: colors.runway[400], backgroundColor: colors.runway[100], paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  // Cards
+  card: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.white, marginHorizontal: spacing.md, paddingHorizontal: spacing.md, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.runway[100] },
+  cardTitle: { flex: 1, fontSize: fontSize.sm, fontWeight: "500", color: colors.runway[800] },
+  // Viewer
+  viewerContainer: { flex: 1, backgroundColor: colors.white },
+  viewerHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md, paddingVertical: 12, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  viewerBack: { flexDirection: "row", alignItems: "center", gap: 2, width: 60 },
+  viewerBackText: { fontSize: fontSize.sm, color: colors.brand[600], fontWeight: "500" },
+  viewerTitle: { fontSize: fontSize.sm, fontWeight: "700", color: colors.runway[900], flex: 1, textAlign: "center" },
+  webview: { flex: 1 },
+});

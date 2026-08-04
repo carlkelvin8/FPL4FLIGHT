@@ -7,18 +7,18 @@
  */
 
 import { AppState, AppStateStatus } from "react-native";
-import { supabase } from "@core/network";
+import { supabase, supabaseUrl } from "@core/network";
 import { queueOperation, processSyncQueue, getPendingSyncCount, clearSyncedItems } from "@core/offline-sync";
 
 let isOnline = true;
-let syncInProgress = false;
+let syncLock: Promise<{ synced: number; failed: number }> | null = null;
 
 /** Check if we're currently online by pinging Supabase */
 export async function checkConnectivity(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    const response = await fetch("https://tajflaaiezwlbkgyfnkh.supabase.co/rest/v1/", {
+    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
       method: "HEAD",
       signal: controller.signal,
     });
@@ -44,7 +44,7 @@ export function startSyncManager(): () => void {
 
     // If we just came back online, trigger sync
     if (wasOffline && isOnline) {
-      console.log("[Sync] Back online — processing queue...");
+      if (__DEV__) console.log("[Sync] Back online — processing queue...");
       await triggerSync();
     }
   }, 15000); // Check every 15 seconds
@@ -63,24 +63,27 @@ export function startSyncManager(): () => void {
   };
 }
 
-/** Trigger a sync cycle */
+/** Trigger a sync cycle (promise-based lock prevents concurrent runs) */
 export async function triggerSync(): Promise<{ synced: number; failed: number }> {
-  if (syncInProgress) return { synced: 0, failed: 0 };
-  syncInProgress = true;
+  if (syncLock) return syncLock;
 
-  try {
-    const result = await processSyncQueue();
-    if (result.synced > 0) {
-      await clearSyncedItems();
-      console.log(`[Sync] Synced ${result.synced} items, ${result.failed} failed`);
+  syncLock = (async () => {
+    try {
+      const result = await processSyncQueue();
+      if (result.synced > 0) {
+        await clearSyncedItems();
+        if (__DEV__) console.log(`[Sync] Synced ${result.synced} items, ${result.failed} failed`);
+      }
+      return result;
+    } catch (error) {
+      if (__DEV__) console.error("[Sync] Error:", error);
+      return { synced: 0, failed: 0 };
+    } finally {
+      syncLock = null;
     }
-    return result;
-  } catch (error) {
-    console.error("[Sync] Error:", error);
-    return { synced: 0, failed: 0 };
-  } finally {
-    syncInProgress = false;
-  }
+  })();
+
+  return syncLock;
 }
 
 /** Get pending sync count */
@@ -102,7 +105,7 @@ export async function offlineAwareWrite(
   // Try online first
   if (isOnline) {
     try {
-      let error: any = null;
+      let error: { message: string } | null = null;
       if (operation === "INSERT") {
         const result = await supabase.from(table).insert(payload);
         error = result.error;

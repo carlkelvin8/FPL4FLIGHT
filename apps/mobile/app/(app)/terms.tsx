@@ -27,7 +27,7 @@ export default function TermsScreen() {
         contentContainerStyle={{ padding: spacing.lg, paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.lastUpdated}>Last updated: July 1, 2026</Text>
+        <Text style={styles.lastUpdated}>Last updated: August 1, 2025</Text>
 
         <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
         <Text style={styles.body}>

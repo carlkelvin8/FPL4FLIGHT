@@ -17,7 +17,8 @@ export function usePermissions() {
   const user = useAuthStore((s) => s.user);
   const { profile } = useProfile();
   // Profile role from DB takes priority over auth store role
-  const role: UserRole = (profile?.role as UserRole) ?? (user?.role as UserRole) ?? "pilot";
+  // While profile is loading, default to "pro" to avoid flash of upgrade screen
+  const role: UserRole = (profile?.role as UserRole) ?? (user?.role as UserRole) ?? "pro";
 
   const permissions = useMemo(() => ({
     /** Check if user can access a feature */

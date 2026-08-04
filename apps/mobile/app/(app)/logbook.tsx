@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput,
   ScrollView, Alert, RefreshControl,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -183,6 +184,7 @@ function generateLogbookPDF(entries: LogEntry[]): string {
 // ─── Main Screen ────────────────────────────────────────────────
 export default function LogbookScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -205,17 +207,17 @@ export default function LogbookScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase.from("pilot_logbook").select("*").eq("user_id", user.id).order("date", { ascending: false });
-      if (data) setEntries(data.map((r: any) => ({
-        id: r.id, date: r.date, aircraftMakeModel: r.aircraft_type ?? "", aircraftIdent: r.aircraft_id ?? "",
-        from: r.departure ?? "", to: r.arrival ?? "",
-        selLand: r.sel_land ?? r.total_hours ?? 0, melLand: r.mel_land ?? 0, helicopter: r.helicopter ?? 0,
-        dualReceived: r.dual_hours ?? 0, pilotInCommand: r.pic_hours ?? 0, secondInCommand: r.sic_hours ?? 0,
-        groundTrainer: r.ground_trainer ?? 0, day: r.day_hours ?? (r.total_hours ?? 0) - (r.night_hours ?? 0), night: r.night_hours ?? 0, crossCountry: r.cross_country ?? 0,
-        actualInstrument: r.ifr_hours ?? 0, simulatedInstrument: r.sim_instrument ?? 0, instrumentApproaches: r.instrument_approaches ?? 0,
-        landingsDay: r.landings ?? 0, landingsNight: r.landings_night ?? 0,
-        totalFlightTime: r.total_hours ?? 0, remarks: r.remarks ?? "",
+      if (data) setEntries(data.map((r: Record<string, unknown>) => ({
+        id: r.id as string, date: r.date as string, aircraftMakeModel: (r.aircraft_type as string) ?? "", aircraftIdent: (r.aircraft_id as string) ?? "",
+        from: (r.departure as string) ?? "", to: (r.arrival as string) ?? "",
+        selLand: (r.sel_land as number) ?? (r.total_hours as number) ?? 0, melLand: (r.mel_land as number) ?? 0, helicopter: (r.helicopter as number) ?? 0,
+        dualReceived: (r.dual_hours as number) ?? 0, pilotInCommand: (r.pic_hours as number) ?? 0, secondInCommand: (r.sic_hours as number) ?? 0,
+        groundTrainer: (r.ground_trainer as number) ?? 0, day: (r.day_hours as number) ?? ((r.total_hours as number) ?? 0) - ((r.night_hours as number) ?? 0), night: (r.night_hours as number) ?? 0, crossCountry: (r.cross_country as number) ?? 0,
+        actualInstrument: (r.ifr_hours as number) ?? 0, simulatedInstrument: (r.sim_instrument as number) ?? 0, instrumentApproaches: (r.instrument_approaches as number) ?? 0,
+        landingsDay: (r.landings as number) ?? 0, landingsNight: (r.landings_night as number) ?? 0,
+        totalFlightTime: (r.total_hours as number) ?? 0, remarks: (r.remarks as string) ?? "",
       })));
-    } catch { /* */ }
+    } catch (e) { if (__DEV__) console.log("[Logbook] Load error:", e); }
     setLoading(false);
   }, []);
 
@@ -310,22 +312,25 @@ export default function LogbookScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: spacing.sm }}>
+          <Ionicons name="chevron-back" size={22} color={colors.brand[600]} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
           <Text style={styles.title}>Pilot Logbook</Text>
           <Text style={styles.subtitle}>{entries.length} entries • {totalAll.toFixed(1)} total hours</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => setShowCurrency(true)}>
+          <TouchableOpacity style={styles.headerBtn} onPress={() => setShowCurrency(true)} accessibilityLabel="View currency status">
             <Ionicons name="shield-checkmark-outline" size={20} color={currency.every((c) => c.current) ? colors.green[600] : colors.amber[600]} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={() => Alert.alert("Options", "Choose an action", [
             { text: "Export PDF", onPress: handleExportPDF },
             { text: "Import CSV", onPress: handleImportCSV },
             { text: "Cancel", style: "cancel" },
-          ])}>
+          ])} accessibilityLabel="More options">
             <Ionicons name="ellipsis-horizontal" size={20} color={colors.runway[600]} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setEditEntry(null); setShowForm(true); }}>
+          <TouchableOpacity style={styles.addBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setEditEntry(null); setShowForm(true); }} accessibilityLabel="Add logbook entry">
             <Ionicons name="add" size={22} color={colors.white} />
           </TouchableOpacity>
         </View>
@@ -367,7 +372,7 @@ export default function LogbookScreen() {
               {item.actualInstrument > 0 && <Text style={styles.entryStat}>IFR:{item.actualInstrument}h</Text>}
               <Text style={styles.entryStat}>Ldg:{item.landingsDay}D/{item.landingsNight}N</Text>
             </View>
-            {item.remarks ? <Text style={styles.entryRemarks} numberOfLines={1}>💬 {item.remarks}</Text> : null}
+            {item.remarks ? <Text style={styles.entryRemarks} numberOfLines={1}><Ionicons name="chatbubble-outline" size={10} color={colors.runway[400]} /> {item.remarks}</Text> : null}
           </TouchableOpacity>
         )}
         ListEmptyComponent={<View style={styles.empty}><Ionicons name="book-outline" size={48} color={colors.runway[300]} /><Text style={styles.emptyText}>No logbook entries yet</Text><Text style={styles.emptySubtext}>Tap + to log your first flight</Text></View>}
@@ -412,9 +417,11 @@ function LogEntryForm({ entry, onSave, onCancel }: { entry: LogEntry | null; onS
   const numUpdate = (k: string, v: string) => {
     const val = parseFloat(v) || 0;
     const newForm = { ...form, [k]: val };
-    // Auto-calculate total flight time
+    // Auto-calculate total flight time from day + night
     if (["day", "night"].includes(k)) {
-      newForm.totalFlightTime = (k === "day" ? val : newForm.day) + (k === "night" ? val : newForm.night);
+      const dayVal = k === "day" ? val : newForm.day;
+      const nightVal = k === "night" ? val : newForm.night;
+      newForm.totalFlightTime = dayVal + nightVal;
     }
     setForm(newForm);
   };

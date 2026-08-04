@@ -24,7 +24,7 @@ Notifications.setNotificationHandler({
 /** Register for push notifications and store token in DB */
 export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) {
-    console.log("[Push] Must use physical device for push notifications");
+    if (__DEV__) console.log("[Push] Must use physical device for push notifications");
     return null;
   }
 
@@ -38,7 +38,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (finalStatus !== "granted") {
-    console.log("[Push] Permission not granted");
+    if (__DEV__) console.log("[Push] Permission not granted");
     return null;
   }
 
@@ -48,7 +48,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
       projectId: "f22e6c2e-fe6e-4b23-af2e-0b8768dda46d", // From app.config.ts
     });
     const token = tokenData.data;
-    console.log("[Push] Token:", token);
+    if (__DEV__) console.log("[Push] Token:", token);
 
     // Store token in database
     await saveTokenToDatabase(token);
@@ -79,7 +79,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     return token;
   } catch (error) {
-    console.error("[Push] Error getting token:", error);
+    if (__DEV__) console.error("[Push] Error getting token:", error);
     return null;
   }
 }
@@ -100,7 +100,7 @@ async function saveTokenToDatabase(token: string): Promise<void> {
       { onConflict: "user_id" },
     );
   } catch (error) {
-    console.error("[Push] Failed to save token:", error);
+    if (__DEV__) console.error("[Push] Failed to save token:", error);
   }
 }
 

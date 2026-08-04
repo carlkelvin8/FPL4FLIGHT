@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -9,6 +10,7 @@ type CalcMode = "tas" | "wind" | "fuel" | "distance";
 
 export default function E6BScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [mode, setMode] = useState<CalcMode>("tas");
 
   // TAS inputs
@@ -34,7 +36,18 @@ export default function E6BScreen() {
   function calcTAS(): string {
     const i = parseFloat(ias); const alt = parseFloat(altitude); const t = parseFloat(temp);
     if (!i || !alt) return "—";
-    // Approximation: TAS ≈ IAS + (IAS × 0.02 × (alt/1000))
+    // Standard atmosphere: ISA temp at altitude = 15 - (2 × alt/1000)
+    // If OAT provided, use density altitude correction; otherwise use pressure altitude approximation
+    if (t !== undefined && !isNaN(t)) {
+      const isaTemp = 15 - (2 * (alt / 1000));
+      const tempDeviation = t - isaTemp;
+      // TAS = IAS × sqrt((OAT + 273.15) / (ISA_temp + 273.15)) × (1 + alt/1000 × 0.02)
+      const tempRatio = Math.sqrt((t + 273.15) / (isaTemp + 273.15));
+      const altCorrection = 1 + (alt / 1000) * 0.02;
+      const tasVal = i * tempRatio * altCorrection;
+      return tasVal.toFixed(0) + " kt";
+    }
+    // Fallback: simple pressure altitude approximation
     const tasVal = i + (i * 0.02 * (alt / 1000));
     return tasVal.toFixed(0) + " kt";
   }
@@ -65,8 +78,13 @@ export default function E6BScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>E6B Calculator</Text>
-        <Text style={styles.subtitle}>Aviation flight computer</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: spacing.sm }}>
+          <Ionicons name="chevron-back" size={22} color={colors.brand[600]} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>E6B Calculator</Text>
+          <Text style={styles.subtitle}>Aviation flight computer</Text>
+        </View>
       </View>
 
       {/* Mode Tabs */}
@@ -159,7 +177,7 @@ function CalcInput({ label, value, onChange }: { label: string; value: string; o
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
   title: { fontSize: 24, fontWeight: "700", color: colors.runway[900] },
   subtitle: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
   tabs: { flexDirection: "row", paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs, backgroundColor: colors.white },

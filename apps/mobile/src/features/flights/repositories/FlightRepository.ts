@@ -132,6 +132,42 @@ export class FlightRepository {
       return err("NETWORK_ERROR", e instanceof Error ? e.message : "Network error deleting flight.");
     }
   }
+
+  async update(id: string, dto: Partial<CreateFlightDto>): Promise<Result<FlightData>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return err("UNAUTHORIZED", "Not authenticated.");
+
+      const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (dto.flightNumber !== undefined) payload.flight_number = dto.flightNumber;
+      if (dto.depCode !== undefined) payload.departure_code = dto.depCode;
+      if (dto.depCity !== undefined) payload.departure_city = dto.depCity;
+      if (dto.depCountry !== undefined) payload.departure_country = dto.depCountry;
+      if (dto.depTime !== undefined) payload.departure_time = dto.depTime;
+      if (dto.arrCode !== undefined) payload.arrival_code = dto.arrCode;
+      if (dto.arrCity !== undefined) payload.arrival_city = dto.arrCity;
+      if (dto.arrCountry !== undefined) payload.arrival_country = dto.arrCountry;
+      if (dto.arrTime !== undefined) payload.arrival_time = dto.arrTime;
+      if (dto.date !== undefined) payload.date = dto.date;
+      if (dto.aircraft !== undefined) payload.aircraft = dto.aircraft;
+      if (dto.gate !== undefined) payload.gate = dto.gate || null;
+      if (dto.pilotInCommand !== undefined) payload.pilot_in_command = dto.pilotInCommand || null;
+      if (dto.remarks !== undefined) payload.remarks = dto.remarks || null;
+
+      const response = await supabase
+        .from("flights")
+        .update(payload)
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (response.error) return err("DB_ERROR", response.error.message, response.error);
+      return ok(rowToFlight(response.data as FlightRow));
+    } catch (e: unknown) {
+      return err("NETWORK_ERROR", e instanceof Error ? e.message : "Network error updating flight.");
+    }
+  }
 }
 
 export const flightRepository = new FlightRepository();

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
 import { useAuthStore } from "@features/auth/stores/authStore";
 import { useProfile } from "@features/forms/hooks/useProfile";
 import { supabase } from "@core/network";
@@ -15,6 +16,8 @@ import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shar
 import { PressableScale } from "@shared/components/PressableScale";
 import { useAppTheme } from "@shared/hooks/useAppTheme";
 import { APP_NAME } from "@shared/constants";
+
+const PILOT_IDS_STORAGE_KEY = "fpl4flight_pilot_ids";
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -36,6 +39,27 @@ export default function AccountScreen() {
   const [licenseType, setLicenseType] = useState("");
   const [medicalExpiry, setMedicalExpiry] = useState("");
   const styles = createStyles(theme);
+
+  // Load persisted pilot document URIs on mount
+  useEffect(() => {
+    async function loadPilotIds() {
+      try {
+        const stored = await SecureStore.getItemAsync(PILOT_IDS_STORAGE_KEY);
+        if (stored && mountedRef.current) {
+          setPilotIds(JSON.parse(stored));
+        }
+      } catch { /* silently fail — first launch */ }
+    }
+    loadPilotIds();
+  }, []);
+
+  // Persist pilot IDs whenever they change
+  async function savePilotIds(ids: string[]) {
+    setPilotIds(ids);
+    try {
+      await SecureStore.setItemAsync(PILOT_IDS_STORAGE_KEY, JSON.stringify(ids));
+    } catch { /* silently fail */ }
+  }
 
   useEffect(() => {
     mountedRef.current = true;
@@ -144,8 +168,17 @@ export default function AccountScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            Alert.alert("Contact Support", "Please contact support@fpl4flight.io to delete your account.");
+          onPress: async () => {
+            try {
+              await supabase.auth.signOut();
+              Alert.alert(
+                "Account Deletion Requested",
+                "You have been signed out. To complete account deletion, please email support@fpl4flight.io from your registered email address.",
+                [{ text: "OK" }]
+              );
+            } catch {
+              Alert.alert("Error", "Failed to process request. Please try again.");
+            }
           },
         },
       ]
@@ -301,7 +334,7 @@ export default function AccountScreen() {
                 <Image source={{ uri }} style={styles.docImage} />
                 <TouchableOpacity style={styles.docRemoveBtn} onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setPilotIds((prev) => prev.filter((_, i) => i !== idx));
+                  savePilotIds(pilotIds.filter((_, i) => i !== idx));
                 }}>
                   <Ionicons name="close-circle" size={20} color={colors.red[500]} />
                 </TouchableOpacity>
@@ -312,7 +345,7 @@ export default function AccountScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
                 if (!result.canceled && result.assets[0]) {
-                  setPilotIds((prev) => [...prev, result.assets[0]!.uri]);
+                  savePilotIds([...pilotIds, result.assets[0]!.uri]);
                 }
               }} activeOpacity={0.7}>
                 <Ionicons name="add" size={28} color={theme.textMuted} />

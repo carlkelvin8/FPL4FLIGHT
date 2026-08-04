@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { supabase } from "@core/network";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { FeatureGate } from "@shared/components/FeatureGate";
 import { APP_NAME } from "@shared/constants";
@@ -31,10 +33,57 @@ export default function NavLogScreen() {
 
 function NavLogContent() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [flightInfo, setFlightInfo] = useState({ departure: "", destination: "", aircraft: "", date: "", cruiseAlt: "", cruiseTAS: "" });
   const [waypoints, setWaypoints] = useState<Waypoint[]>([
     { id: "1", name: "", course: "", distance: "", altitude: "", groundSpeed: "", ete: "", fuel: "", remarks: "" },
   ]);
+  const [saving, setSaving] = useState(false);
+  const [navlogId, setNavlogId] = useState<string | null>(null);
+
+  // Load last saved navlog on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase.from("navlogs").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(1).single();
+        if (data) {
+          setNavlogId(data.id);
+          setFlightInfo({
+            departure: data.departure ?? "", destination: data.destination ?? "",
+            aircraft: data.aircraft ?? "", date: data.date ?? "",
+            cruiseAlt: data.cruise_alt ?? "", cruiseTAS: data.cruise_tas ?? "",
+          });
+          if (Array.isArray(data.waypoints) && data.waypoints.length > 0) {
+            setWaypoints(data.waypoints);
+          }
+        }
+      } catch { /* first time — no saved navlog */ }
+    })();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { Alert.alert("Error", "Not authenticated."); setSaving(false); return; }
+      const payload = {
+        user_id: user.id, departure: flightInfo.departure, destination: flightInfo.destination,
+        aircraft: flightInfo.aircraft, date: flightInfo.date,
+        cruise_alt: flightInfo.cruiseAlt, cruise_tas: flightInfo.cruiseTAS,
+        waypoints, updated_at: new Date().toISOString(),
+      };
+      if (navlogId) {
+        await supabase.from("navlogs").update(payload).eq("id", navlogId);
+      } else {
+        const { data } = await supabase.from("navlogs").insert(payload).select("id").single();
+        if (data) setNavlogId(data.id);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch { Alert.alert("Error", "Failed to save navigation log."); }
+    setSaving(false);
+  };
 
   function addWaypoint() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -57,8 +106,13 @@ function NavLogContent() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Navigation Log</Text>
-        <Text style={styles.subtitle}>Waypoint-by-waypoint planning</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: spacing.sm }}>
+          <Ionicons name="chevron-back" size={22} color={colors.brand[600]} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Navigation Log</Text>
+          <Text style={styles.subtitle}>Waypoint-by-waypoint planning</Text>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
@@ -118,6 +172,12 @@ function NavLogContent() {
           </View>
         </View>
 
+        {/* Save & Export Buttons */}
+        <TouchableOpacity style={[styles.exportBtn, { backgroundColor: colors.green[600], marginBottom: spacing.sm }]} onPress={handleSave} disabled={saving} activeOpacity={0.7}>
+          <Ionicons name="save-outline" size={18} color={colors.white} />
+          <Text style={styles.exportBtnText}>{saving ? "Saving..." : "Save Nav Log"}</Text>
+        </TouchableOpacity>
+
         {/* Export Button */}
         <TouchableOpacity style={styles.exportBtn} onPress={async () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -148,7 +208,7 @@ function NavLogContent() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
   title: { fontSize: 24, fontWeight: "700", color: colors.runway[900] },
   subtitle: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
   card: { backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.md, marginBottom: spacing.md },

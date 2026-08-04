@@ -41,7 +41,7 @@ export default function ChatScreen() {
     deleteMessage, toggleReaction, togglePin,
     replyingTo, startReply, cancelReply,
     editingMessage, startEdit, cancelEdit, saveEdit,
-    flatListRef, isAtBottom, newMessageCount, typingUsers, onlineMembers, members,
+    flatListRef, isAtBottom, newMessageCount, typingUsers, onlineMembers,
     scrollToBottom, handleScroll, fetchNextPage, hasNextPage, isFetchingNextPage,
     onTyping, onStopTyping,
   } = useChat(channelId);
@@ -131,6 +131,14 @@ export default function ChatScreen() {
       {/* Reply preview */}
       {replyingTo && <ReplyPreview message={replyingTo} onCancel={cancelReply} />}
 
+      {/* Send error banner */}
+      {error && !isLoading && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={14} color={colors.red[600]} />
+          <Text style={styles.errorText} numberOfLines={1}>{error}</Text>
+        </View>
+      )}
+
       {/* Edit mode preview */}
       {editingMessage && (
         <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.brand[50], paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.brand[200] }}>
@@ -205,4 +213,6 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: "row", alignItems: "flex-end" },
   attachBtn: { paddingLeft: spacing.md, paddingBottom: spacing.md },
   inputFlex: { flex: 1 },
+  errorBanner: { flexDirection: "row", alignItems: "center", gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: colors.red[50], borderTopWidth: 1, borderTopColor: colors.red[100] },
+  errorText: { flex: 1, fontSize: fontSize.xs, color: colors.red[600], fontWeight: "500" },
 });

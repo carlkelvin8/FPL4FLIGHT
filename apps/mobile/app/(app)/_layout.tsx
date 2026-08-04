@@ -1,12 +1,9 @@
 import { Tabs } from "expo-router";
+import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, darkTheme, lightTheme } from "@shared/theme";
-import { useThemeStore } from "@shared/stores/themeStore";
+import { colors } from "@shared/theme";
 
 export default function AppLayout() {
-  const isDark = useThemeStore((s) => s.isDark);
-  const theme = isDark ? darkTheme : lightTheme;
-
   return (
     <Tabs
       screenOptions={{
@@ -15,10 +12,10 @@ export default function AppLayout() {
         tabBarInactiveTintColor: colors.runway[400],
         tabBarStyle: {
           borderTopWidth: 0,
-          backgroundColor: theme.surface,
-          paddingBottom: 12,
+          backgroundColor: colors.white,
+          paddingBottom: Platform.OS === "android" ? 8 : 12,
           paddingTop: 12,
-          height: 74,
+          height: Platform.OS === "android" ? 68 : 74,
           shadowColor: colors.black,
           shadowOffset: { width: 0, height: -6 },
           shadowOpacity: 0.12,
@@ -36,6 +33,7 @@ export default function AppLayout() {
         },
       }}
     >
+      {/* ─── Visible Tabs ──────────────────────────────── */}
       <Tabs.Screen
         name="forms"
         options={{
@@ -90,29 +88,34 @@ export default function AppLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="account" options={{ href: null }} />
-      <Tabs.Screen name="qrcode" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="templates" options={{ href: null }} />
-      <Tabs.Screen name="terms" options={{ href: null }} />
-      <Tabs.Screen name="privacy" options={{ href: null }} />
-      <Tabs.Screen name="weather" options={{ href: null }} />
-      <Tabs.Screen name="logbook" options={{ href: null }} />
-      <Tabs.Screen name="e6b" options={{ href: null }} />
-      <Tabs.Screen name="weight-balance" options={{ href: null }} />
-      <Tabs.Screen name="notams" options={{ href: null }} />
-      <Tabs.Screen name="navlog" options={{ href: null }} />
-      <Tabs.Screen name="flight-planning" options={{ href: null }} />
-      <Tabs.Screen name="aip" options={{ href: null }} />
-      <Tabs.Screen name="duty-tracker" options={{ href: null }} />
-      <Tabs.Screen name="live-track" options={{ href: null }} />
-      <Tabs.Screen name="form-builder" options={{ href: null }} />
-      <Tabs.Screen name="licenses" options={{ href: null }} />
-      <Tabs.Screen name="billing" options={{ href: null }} />
-      <Tabs.Screen name="team" options={{ href: null }} />
-      <Tabs.Screen name="help" options={{ href: null }} />
-      <Tabs.Screen name="form-editor" options={{ href: null }} />
+
+      {/* ─── Hidden Screens (navigated via Stack-style push) ── */}
+      {/* These screens are registered in the tab navigator with href: null
+          so they remain accessible via router.push() but don't show in the tab bar.
+          Expo Router requires all files in (app)/ to be registered. */}
+      <Tabs.Screen name="index" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="account" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="qrcode" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="notifications" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="templates" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="terms" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="privacy" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="weather" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="logbook" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="e6b" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="weight-balance" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="notams" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="navlog" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="flight-planning" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="aip" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="duty-tracker" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="live-track" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="form-builder" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="licenses" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="billing" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="team" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="help" options={{ href: null, tabBarStyle: { display: "none" } }} />
+      <Tabs.Screen name="form-editor" options={{ href: null, tabBarStyle: { display: "none" } }} />
     </Tabs>
   );
 }

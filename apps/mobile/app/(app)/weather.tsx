@@ -9,18 +9,19 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { colors, spacing, borderRadius, fontSize, type ThemeColors } from "@shared/theme";
+import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { PressableScale } from "@shared/components/PressableScale";
-import { useAppTheme } from "@shared/hooks/useAppTheme";
+import { LoadingState, ErrorState, EmptyState } from "@shared/components/ScreenState";
 import { useWeather } from "@features/weather/hooks/useWeather";
 import { MetarCard } from "@features/weather/components/MetarCard";
 
 export default function WeatherScreen() {
   const insets = useSafeAreaInsets();
-  const { colors: theme } = useAppTheme();
+  const router = useRouter();
   const {
     station,
     setStation,
@@ -44,13 +45,14 @@ export default function WeatherScreen() {
     }
   }, [station, searchStation]);
 
-  const styles = createStyles(theme);
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: spacing.sm }} accessibilityLabel="Go back">
+            <Ionicons name="chevron-back" size={22} color={colors.brand[600]} />
+          </TouchableOpacity>
           <View style={styles.headerIconBg}>
             <Ionicons name="cloud" size={20} color={colors.brand[600]} />
           </View>
@@ -77,11 +79,11 @@ export default function WeatherScreen() {
         {/* Search input */}
         <View style={styles.searchRow}>
           <View style={styles.searchInputWrapper}>
-            <Ionicons name="search" size={18} color={theme.textMuted} />
+            <Ionicons name="search" size={18} color={colors.runway[400]} />
             <TextInput
               style={styles.searchInput}
               placeholder="ICAO code (e.g. KJFK)"
-              placeholderTextColor={theme.textMuted}
+              placeholderTextColor={colors.runway[400]}
               value={station}
               onChangeText={setStation}
               autoCapitalize="characters"
@@ -127,18 +129,12 @@ export default function WeatherScreen() {
 
         {/* Loading state */}
         {metarLoading && !metar && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.brand[500]} />
-            <Text style={styles.loadingText}>Fetching METAR...</Text>
-          </View>
+          <LoadingState message="Fetching METAR..." />
         )}
 
         {/* Error state */}
         {metarError && (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={24} color={colors.red[500]} />
-            <Text style={styles.errorText}>{metarError}</Text>
-          </View>
+          <ErrorState message={metarError} onRetry={refresh} />
         )}
 
         {/* METAR result */}
@@ -159,7 +155,7 @@ export default function WeatherScreen() {
               <Ionicons
                 name={showTaf ? "chevron-up" : "chevron-down"}
                 size={16}
-                color={theme.textMuted}
+                color={colors.runway[400]}
               />
             </TouchableOpacity>
 
@@ -189,26 +185,21 @@ export default function WeatherScreen() {
 
         {/* Empty state */}
         {!metar && !metarLoading && !metarError && (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconBg}>
-              <Ionicons name="airplane-outline" size={40} color={theme.textMuted} />
-            </View>
-            <Text style={styles.emptyTitle}>Enter an ICAO code</Text>
-            <Text style={styles.emptySub}>
-              Get current METAR and TAF data for any airport worldwide.
-            </Text>
-          </View>
+          <EmptyState
+            icon="airplane-outline"
+            title="Enter an ICAO code"
+            subtitle="Get current METAR and TAF data for any airport worldwide."
+          />
         )}
       </ScrollView>
     </View>
   );
 }
 
-const createStyles = (theme: ThemeColors) =>
-  StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
+    backgroundColor: colors.runway[50],
   },
   header: {
     flexDirection: "row",
@@ -216,9 +207,9 @@ const createStyles = (theme: ThemeColors) =>
     justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: theme.surface,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: theme.border,
+    borderBottomColor: colors.runway[200],
   },
   headerLeft: {
     flexDirection: "row",
@@ -236,12 +227,12 @@ const createStyles = (theme: ThemeColors) =>
   headerTitle: {
     fontSize: fontSize.lg,
     fontWeight: "700",
-    color: theme.textPrimary,
+    color: colors.runway[900],
     letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 12,
-    color: theme.textMuted,
+    color: colors.runway[400],
   },
   scroll: {
     flex: 1,
@@ -262,17 +253,17 @@ const createStyles = (theme: ThemeColors) =>
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: theme.surface,
+    backgroundColor: colors.white,
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: colors.runway[200],
     paddingHorizontal: spacing.md,
     height: 44,
   },
   searchInput: {
     flex: 1,
     fontSize: fontSize.base,
-    color: theme.textPrimary,
+    color: colors.runway[800],
     fontWeight: "600",
     letterSpacing: 1,
   },
@@ -285,7 +276,7 @@ const createStyles = (theme: ThemeColors) =>
     justifyContent: "center",
   },
   searchBtnDisabled: {
-    backgroundColor: theme.border,
+    backgroundColor: colors.runway[200],
   },
   chipsScroll: {
     marginBottom: spacing.lg,
@@ -298,9 +289,9 @@ const createStyles = (theme: ThemeColors) =>
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: theme.surface,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: colors.runway[200],
     marginRight: spacing.sm,
   },
   chipActive: {
@@ -310,36 +301,11 @@ const createStyles = (theme: ThemeColors) =>
   chipText: {
     fontSize: fontSize.sm,
     fontWeight: "700",
-    color: theme.textSecondary,
+    color: colors.runway[600],
     letterSpacing: 0.5,
   },
   chipTextActive: {
     color: colors.white,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    paddingVertical: spacing["2xl"],
-    gap: spacing.md,
-  },
-  loadingText: {
-    fontSize: fontSize.sm,
-    color: theme.textMuted,
-  },
-  errorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginHorizontal: spacing.md,
-    backgroundColor: colors.red[50],
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.red[100],
-  },
-  errorText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: colors.red[700],
   },
   tafSection: {
     marginTop: spacing.lg,
@@ -349,11 +315,11 @@ const createStyles = (theme: ThemeColors) =>
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: theme.surface,
+    backgroundColor: colors.white,
     padding: spacing.md,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: colors.runway[200],
   },
   tafToggleLeft: {
     flexDirection: "row",
@@ -363,7 +329,7 @@ const createStyles = (theme: ThemeColors) =>
   tafToggleText: {
     fontSize: fontSize.sm,
     fontWeight: "600",
-    color: theme.textSecondary,
+    color: colors.runway[700],
   },
   tafLoading: {
     paddingVertical: spacing.md,
@@ -389,32 +355,7 @@ const createStyles = (theme: ThemeColors) =>
   },
   tafValid: {
     fontSize: 10,
-    color: theme.textMuted,
+    color: colors.runway[400],
     marginTop: spacing.sm,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingTop: spacing["3xl"],
-  },
-  emptyIconBg: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: theme.borderLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: "600",
-    color: theme.textSecondary,
-  },
-  emptySub: {
-    fontSize: fontSize.sm,
-    color: theme.textMuted,
-    marginTop: spacing.xs,
-    textAlign: "center",
-    paddingHorizontal: spacing["2xl"],
   },
 });

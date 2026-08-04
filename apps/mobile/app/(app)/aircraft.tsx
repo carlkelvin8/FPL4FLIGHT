@@ -203,6 +203,14 @@ export default function AircraftScreen() {
                     <Text style={styles.cardId}>{item.aircraftId || "No ID"}</Text>
                     <Text style={styles.cardType}>{item.typeOfAircraft || "Unknown Type"}</Text>
                   </View>
+                  <TouchableOpacity
+                    onPress={() => handleDelete(item.id)}
+                    style={styles.deleteBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel={`Delete ${item.aircraftId}`}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={colors.red[500]} />
+                  </TouchableOpacity>
                   <View style={[styles.wtcBadge, { backgroundColor: wtcColor + "15", borderColor: wtcColor + "30" }]}>
                     <Text style={[styles.wtcText, { color: wtcColor }]}>{item.wakeTurbulenceCategory}</Text>
                   </View>
@@ -610,6 +618,15 @@ const createStyles = (theme: ThemeColors) =>
   wtcText: {
     fontSize: 13,
     fontWeight: "800",
+  },
+  deleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.red[50],
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.sm,
   },
   cardDetails: {
     flexDirection: "row",

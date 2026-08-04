@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { useSort } from "@/lib/hooks/use-sort";
 import { Pagination } from "@/lib/components/pagination";
 import { ErrorState } from "@/lib/components/error-state";
@@ -116,7 +117,10 @@ export default function NotificationsPage() {
 
   return (
     <section className="space-y-6">
-      <div><h1 className="text-2xl font-semibold text-runway-900">Notifications</h1><p className="mt-1 text-sm text-runway-500">Manage system notifications sent to users.</p></div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h1 className="text-2xl font-semibold text-runway-900">Notifications</h1><p className="mt-1 text-sm text-runway-500">Manage system notifications sent to users.</p></div>
+        <Link href="/notifications/broadcast" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700">New Broadcast</Link>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-runway-200 bg-white p-5">

@@ -13,11 +13,10 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 export function startSessionMonitor(): () => void {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     if (event === "TOKEN_REFRESHED") {
-      // Token was auto-refreshed by Supabase
-      console.log("[Session] Token refreshed");
+      if (__DEV__) console.log("[Session] Token refreshed");
     }
     if (event === "SIGNED_OUT") {
-      console.log("[Session] User signed out");
+      if (__DEV__) console.log("[Session] User signed out");
       stopRefreshTimer();
     }
     if (event === "SIGNED_IN" && session) {

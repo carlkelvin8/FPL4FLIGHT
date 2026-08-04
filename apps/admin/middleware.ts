@@ -4,8 +4,14 @@ import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 const STATIC_FILE_PATTERN = /\.(png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?|ttf|eot)$/;
 
+const PUBLIC_PATHS = ["/home"];
+
 export async function middleware(request: NextRequest) {
   if (STATIC_FILE_PATTERN.test(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
+  if (PUBLIC_PATHS.includes(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

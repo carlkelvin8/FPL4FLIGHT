@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { supabase } from "@core/network";
 import { colors, spacing, borderRadius, fontSize } from "@shared/theme";
 import { FeatureGate } from "@shared/components/FeatureGate";
 import { APP_NAME } from "@shared/constants";
@@ -21,6 +23,7 @@ export default function FlightPlanningScreen() {
 
 function FlightPlanningContent() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [rule, setRule] = useState<FlightRule>("VFR");
   const [departure, setDeparture] = useState("");
   const [destination, setDestination] = useState("");
@@ -31,6 +34,54 @@ function FlightPlanningContent() {
   const [fuelOnBoard, setFuelOnBoard] = useState("");
   const [fuelBurn, setFuelBurn] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [planId, setPlanId] = useState<string | null>(null);
+
+  // Load last saved draft on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase.from("flight_plans").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(1).single();
+        if (data) {
+          setPlanId(data.id);
+          setRule(data.flight_rule ?? "VFR");
+          setDeparture(data.departure ?? "");
+          setDestination(data.destination ?? "");
+          setAlternate(data.alternate ?? "");
+          setCruiseAlt(data.cruise_alt ?? "");
+          setCruiseSpeed(data.cruise_speed ?? "");
+          setRoute(data.route ?? "");
+          setFuelOnBoard(data.fuel_on_board ?? "");
+          setFuelBurn(data.fuel_burn ?? "");
+          setRemarks(data.remarks ?? "");
+        }
+      } catch { /* first time — no saved plan */ }
+    })();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { Alert.alert("Error", "Not authenticated."); setSaving(false); return; }
+      const payload = {
+        user_id: user.id, flight_rule: rule, departure, destination, alternate,
+        cruise_alt: cruiseAlt, cruise_speed: cruiseSpeed, route,
+        fuel_on_board: fuelOnBoard, fuel_burn: fuelBurn, remarks,
+        updated_at: new Date().toISOString(),
+      };
+      if (planId) {
+        await supabase.from("flight_plans").update(payload).eq("id", planId);
+      } else {
+        const { data } = await supabase.from("flight_plans").insert(payload).select("id").single();
+        if (data) setPlanId(data.id);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch { Alert.alert("Error", "Failed to save flight plan."); }
+    setSaving(false);
+  };
 
   // Estimated calculations
   const burn = parseFloat(fuelBurn) || 0;
@@ -40,8 +91,13 @@ function FlightPlanningContent() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Flight Planning</Text>
-        <Text style={styles.subtitle}>VFR & IFR route planning</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: spacing.sm }}>
+          <Ionicons name="chevron-back" size={22} color={colors.brand[600]} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Flight Planning</Text>
+          <Text style={styles.subtitle}>VFR & IFR route planning</Text>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.md, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
@@ -109,6 +165,10 @@ function FlightPlanningContent() {
 
         {/* Save & Export Buttons */}
         <View style={styles.actionsRow}>
+          <TouchableOpacity style={[styles.exportBtn, { backgroundColor: colors.green[600] }]} onPress={handleSave} disabled={saving} activeOpacity={0.7}>
+            <Ionicons name="save-outline" size={18} color={colors.white} />
+            <Text style={styles.exportBtnText}>{saving ? "Saving..." : "Save Plan"}</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.exportBtn} onPress={async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             if (!departure || !destination) { Alert.alert("Required", "Enter departure and destination."); return; }
@@ -144,7 +204,7 @@ function FlightPlanningContent() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.runway[50] },
-  header: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.runway[200] },
   title: { fontSize: 24, fontWeight: "700", color: colors.runway[900] },
   subtitle: { fontSize: fontSize.sm, color: colors.runway[400], marginTop: 2 },
   ruleRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md },

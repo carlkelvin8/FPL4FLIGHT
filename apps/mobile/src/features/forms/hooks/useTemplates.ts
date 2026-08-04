@@ -11,7 +11,7 @@ export function useTemplates() {
     queryFn: async () => {
       const result = await formTemplateRepository.findAll();
       if (!result.success) {
-        console.warn("Templates fetch error:", result.error);
+        if (__DEV__) console.warn("Templates fetch error:", result.error);
         return [];
       }
       return result.data;
